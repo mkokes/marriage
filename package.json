@@ -16,8 +16,8 @@
     "format": "oxfmt",
     "format:check": "oxfmt --check",
     "prepare": "husky",
-    "deploy": "pnpm --filter @marriage/web build && pnpm --filter @marriage/server run deploy",
-    "preview": "pnpm --filter @marriage/web build && pnpm --filter @marriage/server exec wrangler dev"
+    "deploy": "pnpm --filter @marriage/server run deploy",
+    "preview": "pnpm --filter @marriage/web build && pnpm --parallel --filter @marriage/server --filter @marriage/web run --if-present preview:serve"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",

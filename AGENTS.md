@@ -32,8 +32,8 @@ pnpm lint             # oxlint, type-aware, warnings fail
 pnpm format           # oxfmt (format:check to verify only)
 pnpm typecheck        # tsc per package
 pnpm build            # builds the web app
-pnpm run preview      # production build served by wrangler dev on :8787 (one Worker: assets + game)
-pnpm run deploy       # build + wrangler deploy (needs `wrangler login`); not `pnpm deploy`, a pnpm built-in
+pnpm run preview      # production web build on :4173 (vite preview) against wrangler dev on :8787
+pnpm run deploy       # wrangler deploy of the game server (needs `wrangler login`); not `pnpm deploy`, a pnpm built-in
 ```
 
 The **pre-push hook** runs `lint`, `format:check`, `typecheck` and `test`; all must pass before pushing.
@@ -51,7 +51,8 @@ The **pre-push hook** runs `lint`, `format:check`, `typecheck` and `test`; all m
 
 ## Gotchas
 
-- **Deployment:** one Worker named `marriage` serves `apps/web/dist` as static assets (single-page-app fallback) and runs the game at `/parties/*` (`run_worker_first`). The Worker falls back to `env.ASSETS` for everything else. Build the web app before `wrangler deploy`.
+- **Deployment is split.** The web app is on GitHub Pages at `cards.martykokes.com`, published by `.github/workflows/pages.yml` on pushes to `main`, which builds with `VITE_GAME_HOST=cards-api.martykokes.com`. The game server is the `marriage` Worker on the custom domain `cards-api.martykokes.com`, deployed manually with `pnpm run deploy`. Without `VITE_GAME_HOST` (dev), the app connects to its own host and Vite proxies `/parties`.
+- **Origin allowlist:** the Worker rejects browser connections whose `Origin` isn't in `ALLOWED_ORIGINS` (wrangler.jsonc vars) or `http://localhost:*`. Add new frontend origins there.
 - **TypeScript 7** (the Go-based compiler) is in use, with `oxlint-tsgolint` for type-aware lint. Target/lib is ES2023.
 - The engine has two tsconfigs. `tsconfig.json` includes tests and Node types (for the editor, linter and test-only `node:crypto`). `tsconfig.src.json` checks the source alone without Node or DOM types, so the engine can't come to depend on one runtime; `structuredClone` is declared in `src/globals.d.ts` for it. `pnpm typecheck` runs both.
 - pnpm 10 blocks dependency install scripts. `esbuild` and `workerd` are allow-listed in `pnpm-workspace.yaml` (`onlyBuiltDependencies`), and wrangler needs both. Add others there deliberately.

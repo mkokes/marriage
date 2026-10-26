@@ -19,10 +19,11 @@ export default defineConfig({
       },
     }),
   ],
+  // Forward PartyKit-style routes to `wrangler dev` so the client can use a same-origin host.
   server: {
-    // Forward PartyKit-style routes to `wrangler dev` so the client can use a same-origin host.
-    proxy: {
-      '/parties': { target: 'http://localhost:8787', ws: true },
-    },
+    proxy: { '/parties': { target: 'http://localhost:8787', ws: true } },
+  },
+  preview: {
+    proxy: { '/parties': { target: 'http://localhost:8787', ws: true } },
   },
 });

@@ -52,15 +52,19 @@ pnpm build       # production build of the web app
 
 ### Deploying
 
-The whole app is one Cloudflare Worker: it serves the built web app and runs the game server at `/parties/*`, with one Durable Object per table. Deploying needs a Cloudflare account; the free Workers plan is enough for private games.
+The app is deployed in two parts:
+
+- **Web app:** [cards.martykokes.com](https://cards.martykokes.com), on GitHub Pages. The [Pages workflow](.github/workflows/pages.yml) runs the checks, builds it and publishes it on every push to `main`.
+- **Game server:** `cards-api.martykokes.com`, a Cloudflare Worker with one Durable Object per table. It accepts game connections only from the web app's origin (and `localhost`). Deploy it from your machine; the free Workers plan is enough for private games.
 
 ```sh
 pnpm --filter @marriage/server exec wrangler login   # once, opens a browser
-pnpm run preview   # optional: the production build locally on http://localhost:8787
-pnpm run deploy    # builds the web app and deploys the Worker
+pnpm run deploy    # deploys the Worker (creates the custom domain's DNS on first deploy)
 ```
 
-Use `pnpm run deploy`, not `pnpm deploy`, which is a built-in pnpm command.
+Use `pnpm run deploy`, not `pnpm deploy`, which is a built-in pnpm command. Deploy the Worker before (or with) any web change that relies on new server behavior.
+
+`pnpm run preview` serves the production web build on `http://localhost:4173` against a local Worker.
 
 A pre-push hook runs lint, format check, typecheck and tests. Work happens on branches and lands through pull requests.
 

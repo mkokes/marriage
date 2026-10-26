@@ -13,6 +13,12 @@ import { deviceToken } from './token';
 
 const token = deviceToken();
 
+/**
+ * Where the game server lives. Production builds set VITE_GAME_HOST (the Worker's
+ * domain); in development the page's own host is used and Vite proxies /parties.
+ */
+const host = import.meta.env.VITE_GAME_HOST || window.location.host;
+
 const SERVER_TYPES = new Set(['table', 'error', 'reaction', 'replay']);
 
 function isServerMessage(value: unknown): value is ServerMessage {
@@ -31,6 +37,7 @@ export function useTable(room: string) {
   const [replay, setReplay] = useState<ReplayRecord | null>(null);
 
   const socket = usePartySocket({
+    host,
     party: TABLE_PARTY,
     room,
     query: { token },

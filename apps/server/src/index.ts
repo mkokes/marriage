@@ -13,6 +13,7 @@ import {
   type ConnectionContext,
   type WSMessage,
 } from 'partyserver';
+import { isAllowedOrigin } from './origin';
 import {
   handleMessage,
   handleTimeout,
@@ -26,8 +27,8 @@ import {
 
 export interface Env {
   Table: DurableObjectNamespace<Table>;
-  /** The web app's static build (see `assets` in wrangler.jsonc). */
-  ASSETS: Fetcher;
+  /** Comma-separated browser origins allowed to connect (see wrangler.jsonc). */
+  ALLOWED_ORIGINS: string;
 }
 
 const toHex = (bytes: Uint8Array): string =>
@@ -167,6 +168,12 @@ export class Table extends Server<Env> {
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    return (await routePartykitRequest(request, env)) ?? env.ASSETS.fetch(request);
+    if (!isAllowedOrigin(request.headers.get('Origin'), env.ALLOWED_ORIGINS)) {
+      return new Response('Forbidden origin', { status: 403 });
+    }
+    return (
+      (await routePartykitRequest(request, env)) ??
+      new Response('Marriage game server. Play at https://cards.martykokes.com', { status: 404 })
+    );
   },
 } satisfies ExportedHandler<Env>;

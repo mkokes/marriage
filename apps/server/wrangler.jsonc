@@ -3,13 +3,14 @@
   "name": "marriage",
   "main": "src/index.ts",
   "compatibility_date": "2026-10-01",
-  // One Worker serves the web app's static build and the game server at /parties/*.
-  // Build the web app first (`pnpm run deploy` at the repo root does both).
-  "assets": {
-    "directory": "../web/dist",
-    "binding": "ASSETS",
-    "not_found_handling": "single-page-application",
-    "run_worker_first": ["/parties/*"],
+  // The game server only. The web app is on GitHub Pages (cards.martykokes.com).
+  // Wrangler creates the DNS record and certificate for this custom domain on deploy.
+  "routes": [{ "pattern": "cards-api.martykokes.com", "custom_domain": true }],
+  "workers_dev": false,
+  "vars": {
+    // Browser origins allowed to open game connections (comma-separated).
+    // Any http://localhost origin is also allowed, for local development.
+    "ALLOWED_ORIGINS": "https://cards.martykokes.com",
   },
   "durable_objects": {
     "bindings": [{ "name": "Table", "class_name": "Table" }],

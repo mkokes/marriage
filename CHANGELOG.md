@@ -22,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Nepali-inspired look: night indigo table, crimson and marigold accents, lokta-paper cards and a dhaka-weave band.
 - Bots: the host can seat bots between hands. They play from their own view of the table only (no peeking), take discards that complete sets, show and finish when they can, and move after a short pause.
 - Table chat with recent history, and quick emoji reactions that appear beside the sender's name.
-- Deployment as a single Cloudflare Worker that serves the web app and runs the game server (`pnpm run deploy`), plus `pnpm run preview` to run the production build locally.
+- Deployment: the web app is published to GitHub Pages (cards.martykokes.com) by a workflow that runs the checks first. The game server is a Cloudflare Worker on cards-api.martykokes.com (`pnpm run deploy`). `pnpm run preview` serves the production build locally.
 - Replays: watch any finished hand step by step with every card face up, from the results screen or the final totals.
 
 ### Changed
@@ -35,3 +35,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The table server no longer rebroadcasts raw client messages, which let players forge server messages.
 - Shuffling uses ChaCha20 under a 256-bit key instead of a 32-bit seed, which could be brute-forced from a player's own hand to reveal every other hand.
 - The engine validates every action and rule field at runtime, so malformed client input is rejected instead of crashing a hand.
+- The game server only accepts browser connections from the web app's own origin.
