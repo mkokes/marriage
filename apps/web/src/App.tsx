@@ -1,4 +1,6 @@
+import { Chat } from './Chat';
 import { FinalScores } from './Results';
+import { Replay } from './Replay';
 import { Game } from './Game';
 import { Home } from './Home';
 import { Lobby } from './Lobby';
@@ -11,17 +13,24 @@ export function App() {
 }
 
 function TableScreen({ room }: { room: string }) {
-  const { table, error, connected, send, dismissError } = useTable(room);
+  const { table, error, connected, send, dismissError, reactions, replay, closeReplay } =
+    useTable(room);
 
   let screen;
   if (!table) screen = <p className="loading">Joining table {room}…</p>;
-  else if (table.status === 'lobby') screen = <Lobby room={room} table={table} send={send} />;
-  else if (table.status === 'ended') screen = <FinalScores table={table} />;
-  else screen = <Game key={table.handNumber} room={room} table={table} send={send} />;
+  else if (table.status === 'lobby')
+    screen = <Lobby room={room} table={table} send={send} reactions={reactions} />;
+  else if (table.status === 'ended') screen = <FinalScores table={table} send={send} />;
+  else
+    screen = (
+      <Game key={table.handNumber} room={room} table={table} send={send} reactions={reactions} />
+    );
 
   return (
     <>
       {screen}
+      {table && table.status !== 'ended' && <Chat table={table} send={send} />}
+      {replay && table && <Replay record={replay} names={table.names} onClose={closeReplay} />}
       {!connected && table && <p className="banner">Reconnecting…</p>}
       {error && (
         <div className="toast" role="alert">

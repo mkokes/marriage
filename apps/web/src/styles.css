@@ -840,3 +840,220 @@ button.card {
   justify-self: stretch;
   margin-bottom: 0;
 }
+
+/* Chat */
+.chat-toggle {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 15;
+  font: inherit;
+  font-weight: 700;
+  min-height: 44px;
+  padding: 0 1rem;
+  border-radius: 999px;
+  border: 2px solid var(--marigold);
+  background: var(--indigo-raised);
+  color: var(--marigold);
+  cursor: pointer;
+  display: inline-flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.chat-toggle__badge {
+  min-width: 1.4rem;
+  padding: 0 0.35rem;
+  border-radius: 999px;
+  background: var(--crimson);
+  color: #fff;
+  font-size: 0.8rem;
+}
+
+.chat {
+  position: fixed;
+  right: 16px;
+  bottom: 72px;
+  z-index: 15;
+  width: min(24rem, calc(100vw - 32px));
+  max-height: min(70dvh, 32rem);
+  display: grid;
+  grid-template-rows: auto 1fr auto auto;
+  gap: 0.6rem;
+  padding: 0.8rem 1rem 1rem;
+  border-radius: 14px;
+  background: var(--indigo-raised);
+  border-top: 4px solid var(--marigold);
+  box-shadow: 0 10px 30px #0008;
+}
+
+.chat__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.chat__header h2 {
+  margin: 0;
+}
+
+.chat__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  display: grid;
+  gap: 0.35rem;
+  align-content: start;
+  overflow-wrap: anywhere;
+}
+
+.chat__list strong {
+  color: var(--marigold);
+  margin-right: 0.3rem;
+}
+
+.reactions {
+  display: flex;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+}
+
+.reactions__button {
+  font-size: 1.3rem;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--indigo-line);
+  background: #0f1736;
+  cursor: pointer;
+}
+
+/* A reaction pops in beside a player's name, then disappears. */
+.reaction {
+  display: inline-block;
+  margin-left: 0.35rem;
+  font-size: 1.25rem;
+  animation: reaction-pop 300ms ease-out;
+}
+
+@keyframes reaction-pop {
+  from {
+    transform: scale(0.3);
+  }
+}
+
+.seat__remove {
+  margin-left: auto;
+  min-height: 32px;
+}
+
+/* Replay */
+.replay {
+  max-width: 44rem;
+  margin: 0 auto;
+  padding: 1.25rem;
+  border-radius: 14px;
+  background: var(--indigo-raised);
+  border-top: 6px solid var(--marigold);
+  display: grid;
+  gap: 1rem;
+}
+
+.replay > *,
+.replay .results__seats > li {
+  min-width: 0;
+}
+
+.replay__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.replay__header h2 {
+  margin: 0;
+  font-family: 'Yatra One', serif;
+  font-weight: 400;
+  font-size: 1.6rem;
+  color: var(--marigold);
+}
+
+.replay__caption {
+  margin: 0;
+  min-height: 3em;
+  font-size: 1.05rem;
+}
+
+.replay__table {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.replay__tiplu {
+  display: inline-flex;
+  gap: 0.4rem;
+  align-items: center;
+  color: var(--marigold);
+}
+
+.replay__seat {
+  padding-left: 0.6rem;
+  border-left: 3px solid transparent;
+}
+
+.replay__seat--turn {
+  border-left-color: var(--marigold);
+}
+
+.replay__controls {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.replay__controls input[type='range'] {
+  width: 100%;
+  accent-color: var(--marigold);
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+.results__replay {
+  justify-self: start;
+}
+
+.final__hands ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.2rem;
+}
+
+.final__hands li {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--indigo-line);
+}
+
+.final__hands {
+  justify-self: stretch;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reaction {
+    animation: none;
+  }
+}
+
+/* Leave room under scrolling content for the floating chat button. */
+.lobby,
+.game,
+.overlay {
+  padding-bottom: 88px;
+}

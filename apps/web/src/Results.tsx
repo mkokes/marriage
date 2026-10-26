@@ -13,8 +13,7 @@ interface Props {
 export function Results({ table, send }: Props) {
   const hand = table.hand!;
   const result = hand.result!;
-  const name = (id: string) =>
-    table.seats.find((s) => s.playerId === id)?.name ?? 'A former player';
+  const name = (id: string) => table.names[id] ?? 'A former player';
   const won = result.kind === 'won';
   const winnerName = won ? name(hand.seats[result.winner]!.id) : null;
 
@@ -59,6 +58,15 @@ export function Results({ table, send }: Props) {
         ))}
       </ul>
       <Scores table={table} />
+      {won || hand.discardPile.length > 1 ? (
+        <button
+          type="button"
+          className="button button--quiet results__replay"
+          onClick={() => send({ type: 'getReplay', handNumber: table.handNumber })}
+        >
+          Watch a replay of this hand
+        </button>
+      ) : null}
       {!table.you.playerId && (
         <SitForm
           full={table.seats.length >= MAX_PLAYERS}
@@ -85,12 +93,34 @@ export function Results({ table, send }: Props) {
   );
 }
 
-export function FinalScores({ table }: { table: TableView }) {
+export function FinalScores({ table, send }: Props) {
   return (
     <main className="final">
       <div className="dhaka-band" aria-hidden="true" />
       <h1 className="lobby__title">Thanks for playing</h1>
       <Scores table={table} />
+      {table.history.length > 0 && (
+        <section className="final__hands" aria-labelledby="hands">
+          <h2 id="hands">Hands</h2>
+          <ol>
+            {table.history.map((h) => (
+              <li key={h.handNumber}>
+                <span>
+                  Hand {h.handNumber}:{' '}
+                  {h.winner ? `${table.names[h.winner] ?? 'A former player'} won` : 'no winner'}
+                </span>
+                <button
+                  type="button"
+                  className="button button--quiet"
+                  onClick={() => send({ type: 'getReplay', handNumber: h.handNumber })}
+                >
+                  Replay
+                </button>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
       <a className="button button--primary" href={window.location.pathname}>
         Start a new table
       </a>

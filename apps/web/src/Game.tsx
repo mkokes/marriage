@@ -4,15 +4,18 @@ import { useState } from 'react';
 import { moveCards, reconcile, sortByRank, sortBySuit, type Arrangement } from './arrangement';
 import { describeGroup, finishGroups, showGroups } from './moves';
 import { CardBack, PlayingCard } from './PlayingCard';
+import { ReactionBubble } from './ReactionBubble';
 import { Results } from './Results';
 import { Scores } from './Scores';
 import { local } from './storage';
 import { useNow } from './useNow';
+import type { Reactions } from './useTable';
 
 interface Props {
   room: string;
   table: TableView;
   send: (message: ClientMessage) => void;
+  reactions: Reactions;
 }
 
 const isArrangement = (value: unknown): value is Arrangement =>
@@ -31,7 +34,7 @@ function loadArrangement(key: string): Arrangement | null {
 const SEEN_LABEL = { unseen: null, seen: 'Seen', seenDublees: 'Seen with dublees' } as const;
 
 /** The table during a hand, and the results once it's over. Keyed by hand number. */
-export function Game({ room, table, send }: Props) {
+export function Game({ room, table, send, reactions }: Props) {
   const hand = table.hand!;
   const you = hand.you;
   const cards = you?.hand ?? [];
@@ -76,7 +79,7 @@ export function Game({ room, table, send }: Props) {
   const secondsLeft =
     table.turnDeadline === null ? null : Math.max(0, Math.ceil((table.turnDeadline - now) / 1000));
 
-  const name = (id: string) => table.seats.find((s) => s.playerId === id)?.name ?? 'Former player';
+  const name = (id: string) => table.names[id] ?? 'A former player';
   const seatAway = (id: string) => table.seats.find((s) => s.playerId === id)?.connected === false;
   const turnName = name(hand.seats[hand.turn]!.id);
   const topDiscard = hand.discardPile.at(-1) ?? null;
@@ -114,7 +117,10 @@ export function Game({ room, table, send }: Props) {
               key={seat.id}
               className={`opponent${hand.turn === i && !over ? ' opponent--turn' : ''}${seatAway(seat.id) ? ' opponent--away' : ''}`}
             >
-              <span className="opponent__name">{name(seat.id)}</span>
+              <span className="opponent__name">
+                {name(seat.id)}
+                <ReactionBubble reactions={reactions} playerId={seat.id} />
+              </span>
               <span className="opponent__meta">
                 {seat.handCount} cards
                 {SEEN_LABEL[seat.seen] && <span className="tag">{SEEN_LABEL[seat.seen]}</span>}
@@ -277,6 +283,7 @@ export function Game({ room, table, send }: Props) {
           </div>
 
           <div className="tools">
+            <ReactionBubble reactions={reactions} playerId={you.id} />
             <button
               type="button"
               className="button button--quiet"
