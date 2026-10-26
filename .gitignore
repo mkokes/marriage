@@ -28,3 +28,6 @@ coverage/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Browser automation output
+.playwright-mcp/

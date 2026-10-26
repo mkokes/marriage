@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Persistence: table state survives restarts and deploys, and every finished hand is stored as a replay (RNG key plus action log).
 - Reconnecting: devices keep a secret token that reclaims their seat; the server stores only its hash.
 - `@marriage/protocol` package with the client/server message types and runtime checks.
+- Game UI: start or join a table by code, a lobby with an invite link and a rules editor for the host, and the table itself: opponents, stock and discard, the tiplu once seen, a turn prompt with timer, and your hand as grouped fans you arrange by tapping, with set names shown as you build them. Discard, show and finish are offered only when valid. End-of-hand results reveal every hand with maal and points, and the session ends with final totals.
+- Nepali-inspired look: night indigo table, crimson and marigold accents, lokta-paper cards and a dhaka-weave band.
 
 ### Changed
 

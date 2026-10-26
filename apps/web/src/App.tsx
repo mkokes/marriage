@@ -1,76 +1,36 @@
-import { isRecord } from '@marriage/engine';
-import {
-  TABLE_PARTY,
-  type ClientMessage,
-  type ServerMessage,
-  type TableView,
-} from '@marriage/protocol';
-import { usePartySocket } from 'partysocket/react';
-import { useState } from 'react';
-import { deviceToken } from './token';
+import { FinalScores } from './Results';
+import { Game } from './Game';
+import { Home } from './Home';
+import { Lobby } from './Lobby';
+import { useTable } from './useTable';
 
-const room = new URLSearchParams(window.location.search).get('table') ?? 'lobby';
-const token = deviceToken();
+const tableCode = new URLSearchParams(window.location.search).get('table');
 
-function isServerMessage(value: unknown): value is ServerMessage {
-  return isRecord(value) && (value.type === 'table' || value.type === 'error');
+export function App() {
+  return tableCode ? <TableScreen room={tableCode} /> : <Home />;
 }
 
-/** Placeholder table screen until the game UI (milestone 4) lands. */
-export function App() {
-  const [table, setTable] = useState<TableView | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [name, setName] = useState('');
+function TableScreen({ room }: { room: string }) {
+  const { table, error, connected, send, dismissError } = useTable(room);
 
-  const socket = usePartySocket({
-    party: TABLE_PARTY,
-    room,
-    query: { token },
-    onMessage(event: MessageEvent<string>) {
-      const message: unknown = JSON.parse(event.data);
-      if (!isServerMessage(message)) return;
-      if (message.type === 'table') {
-        setTable(message.table);
-        setError(null);
-      } else {
-        setError(message.message);
-      }
-    },
-  });
-
-  const send = (message: ClientMessage) => socket.send(JSON.stringify(message));
+  let screen;
+  if (!table) screen = <p className="loading">Joining table {room}…</p>;
+  else if (table.status === 'lobby') screen = <Lobby room={room} table={table} send={send} />;
+  else if (table.status === 'ended') screen = <FinalScores table={table} />;
+  else screen = <Game key={table.handNumber} room={room} table={table} send={send} />;
 
   return (
-    <main>
-      <h1>Marriage</h1>
-      <p>
-        Table <strong>{room}</strong>: {table?.status ?? 'connecting…'}
-      </p>
-      <ul>
-        {table?.seats.map((seat) => (
-          <li key={seat.playerId}>
-            {seat.name}
-            {seat.playerId === table.hostId ? ' (host)' : ''}
-            {seat.connected ? '' : ' (away)'}: {table.scores[seat.playerId] ?? 0}
-          </li>
-        ))}
-      </ul>
-      {table && !table.you.playerId && (
-        <form
-          onSubmit={(event) => {
-            event.preventDefault();
-            send({ type: 'sit', name });
-          }}
-        >
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" />
-          <button type="submit">Sit down</button>
-        </form>
+    <>
+      {screen}
+      {!connected && table && <p className="banner">Reconnecting…</p>}
+      {error && (
+        <div className="toast" role="alert">
+          <span>{error}</span>
+          <button type="button" className="button button--quiet" onClick={dismissError}>
+            Dismiss
+          </button>
+        </div>
       )}
-      {table?.you.isHost && table.status !== 'playing' && (
-        <button onClick={() => send({ type: 'start' })}>Deal a hand</button>
-      )}
-      {table?.hand?.you && <p>Your hand: {table.hand.you.hand.length} cards</p>}
-      {error && <p role="alert">{error}</p>}
-    </main>
+    </>
   );
 }
