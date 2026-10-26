@@ -1,15 +1,842 @@
+/* Marriage: Tihar-night indigo table, crimson and marigold accents, lokta-paper cards,
+   and a dhaka-weave band as the one bold element. */
 :root {
-  color-scheme: light dark;
-  font-family: system-ui, sans-serif;
-  background: #14532d;
-  color: #f8fafc;
+  --indigo: #141e46;
+  --indigo-raised: #1d2a5e;
+  --indigo-line: #2e3c78;
+  --crimson: #c8102e;
+  --marigold: #f2a007;
+  --lokta: #f4ead5;
+  --ink: #1a1c38;
+  --text: #eef0fa;
+  --muted: #a3a9cb;
+  --positive: #8fd19e;
+  --negative: #ff8a8a;
+
+  --card-w: clamp(44px, 12.4vw, 84px);
+  --card-small: 26px;
+  --radius: 8px;
+
+  color-scheme: dark;
+  font-family: 'Mukta', system-ui, sans-serif;
+  font-size: 17px;
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--indigo);
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
   margin: 0;
   min-height: 100dvh;
+  background:
+    radial-gradient(120% 80% at 50% 0%, var(--indigo-raised), transparent 70%), var(--indigo);
 }
 
-main {
-  padding: 16px;
+h1,
+h2 {
+  margin: 0 0 0.5rem;
+  line-height: 1.15;
+}
+
+h2 {
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+p {
+  margin: 0 0 0.75rem;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.positive {
+  color: var(--positive);
+}
+
+.negative {
+  color: var(--negative);
+}
+
+:focus-visible {
+  outline: 3px solid var(--marigold);
+  outline-offset: 2px;
+}
+
+/* Dhaka weave: interlocking crimson, ink and paper triangles. */
+.dhaka-band {
+  height: 18px;
+  background:
+    linear-gradient(135deg, var(--crimson) 33%, transparent 33%) 0 0 / 18px 18px,
+    linear-gradient(225deg, var(--crimson) 33%, transparent 33%) 0 0 / 18px 18px,
+    linear-gradient(45deg, var(--ink) 33%, transparent 33%) 9px 0 / 18px 18px,
+    linear-gradient(315deg, var(--ink) 33%, transparent 33%) 9px 0 / 18px 18px,
+    repeating-linear-gradient(90deg, var(--lokta) 0 2px, var(--marigold) 2px 4px);
+  border-bottom: 2px solid var(--ink);
+}
+
+/* Buttons and fields */
+.button {
+  font: inherit;
+  font-weight: 500;
+  min-height: 44px;
+  padding: 0.4rem 1rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--indigo-line);
+  background: var(--indigo-raised);
+  color: var(--text);
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.button--primary {
+  background: var(--marigold);
+  border-color: var(--marigold);
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.button--quiet {
+  background: transparent;
+  border-color: transparent;
+  color: var(--muted);
+}
+
+.button--large {
+  min-height: 52px;
+  padding-inline: 1.5rem;
+  font-size: 1.1rem;
+}
+
+.button-row,
+.field-row {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.field-row input {
+  flex: 1 1 10rem;
+  min-width: 0;
+}
+
+input,
+select {
+  font: inherit;
+  min-height: 44px;
+  padding: 0.3rem 0.6rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--indigo-line);
+  background: #0f1736;
+  color: var(--text);
+}
+
+.tag {
+  font-size: 0.8rem;
+  padding: 0 0.45rem;
+  border-radius: 999px;
+  background: var(--indigo-line);
+  color: var(--text);
+}
+
+.tag--you {
+  background: var(--marigold);
+  color: var(--ink);
+}
+
+/* Cards */
+.card {
+  position: relative;
+  display: inline-block;
+  flex: none;
+  width: var(--card-w);
+  aspect-ratio: 5 / 7;
+  border-radius: calc(var(--card-w) * 0.09);
+  background: var(--lokta);
+  color: var(--ink);
+  border: 1px solid #cbbd9c;
+  box-shadow: 0 1px 0 #0003;
+  font: inherit;
+  padding: 0;
+  text-align: left;
+  user-select: none;
+  transition: transform 120ms ease-out;
+}
+
+button.card {
+  cursor: pointer;
+}
+
+.card--red {
+  color: var(--crimson);
+}
+
+.card--small {
+  --card-w: var(--card-small);
+}
+
+.card__corner {
+  position: absolute;
+  top: 3%;
+  left: 8%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-weight: 700;
+  line-height: 0.95;
+  font-size: calc(var(--card-w) * 0.3);
+}
+
+.card--small .card__corner {
+  font-size: 11px;
+  left: 3px;
+  top: 2px;
+}
+
+.card__pip {
+  position: absolute;
+  right: 8%;
+  bottom: 4%;
+  font-size: calc(var(--card-w) * 0.52);
+  line-height: 1;
+}
+
+.card--small .card__pip {
+  display: none;
+}
+
+.card__pip--man {
+  font-family: 'Yatra One', serif;
+  font-size: calc(var(--card-w) * 0.3);
+  color: var(--crimson);
+}
+
+.card__wild {
+  position: absolute;
+  top: 5%;
+  right: 7%;
+  width: calc(var(--card-w) * 0.16);
+  min-width: 6px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--marigold);
+  box-shadow: 0 0 0 2px var(--lokta);
+}
+
+.card--selected {
+  transform: translateY(-12px);
+  box-shadow:
+    0 0 0 3px var(--marigold),
+    0 6px 10px #0006;
+  z-index: 1;
+}
+
+.card--back {
+  background:
+    linear-gradient(135deg, var(--crimson) 33%, transparent 33%) 0 0 / 10px 10px,
+    linear-gradient(225deg, var(--crimson) 33%, transparent 33%) 0 0 / 10px 10px,
+    linear-gradient(45deg, var(--ink) 33%, transparent 33%) 5px 0 / 10px 10px,
+    linear-gradient(315deg, var(--ink) 33%, transparent 33%) 5px 0 / 10px 10px,
+    var(--lokta);
+  border: 3px solid var(--lokta);
+  outline: 1px solid #cbbd9c;
+}
+
+.card--empty {
+  background: transparent;
+  border: 2px dashed var(--indigo-line);
+  box-shadow: none;
+}
+
+.mini-group {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 1px;
+  margin-right: 6px;
+}
+
+/* Home */
+.home,
+.lobby,
+.final {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 0 16px 48px;
+}
+
+.home .dhaka-band,
+.lobby .dhaka-band,
+.final .dhaka-band,
+.game .dhaka-band {
+  margin: 0 -16px 1.5rem;
+}
+
+.home__hero {
+  padding: 12vh 0 2.5rem;
+}
+
+.home__title {
+  font-family: 'Yatra One', serif;
+  font-weight: 400;
+  font-size: clamp(3.5rem, 18vw, 6.5rem);
+  line-height: 0.95;
+  color: var(--marigold);
+  text-shadow: 3px 3px 0 var(--crimson);
+  margin-bottom: 1.25rem;
+}
+
+.home__lede {
+  font-size: 1.15rem;
+  max-width: 30ch;
+  margin-bottom: 1.75rem;
+}
+
+.home__join {
+  display: grid;
+  gap: 0.4rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--indigo-line);
+}
+
+/* Lobby */
+.lobby section,
+.lobby__header {
+  margin-bottom: 2rem;
+}
+
+.lobby__title {
+  font-family: 'Yatra One', serif;
+  font-weight: 400;
+  font-size: 2.2rem;
+  color: var(--marigold);
+}
+
+.lobby__link {
+  font-size: 0.9rem;
+}
+
+.seats {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1rem;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.seat {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  padding: 0.55rem 0.8rem;
+  border-left: 4px solid var(--marigold);
+  background: var(--indigo-raised);
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+
+.seat--away {
+  border-left-color: var(--indigo-line);
+}
+
+.seat__name {
+  font-weight: 700;
+}
+
+.sit {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.lobby__start {
+  display: grid;
+  gap: 0.5rem;
+  justify-items: start;
+}
+
+/* Rules form */
+.rules {
+  display: grid;
+  gap: 1rem;
+}
+
+.rules fieldset {
+  border: 1px solid var(--indigo-line);
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem 1rem;
+  display: grid;
+  gap: 0.6rem;
+  margin: 0;
+}
+
+.rules legend {
+  font-weight: 700;
+  padding: 0 0.3rem;
+}
+
+.field {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.field span {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.field input,
+.field select {
+  width: 100%;
+  min-width: 0;
+}
+
+.field-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+  gap: 0.6rem;
+}
+
+.check {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  min-height: 44px;
+}
+
+.check input {
+  min-height: 0;
+  width: 1.2rem;
+  height: 1.2rem;
+  accent-color: var(--marigold);
+}
+
+.rules__problems {
+  color: var(--negative);
+  margin: 0;
+}
+
+/* Game */
+.game {
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: 0 16px 32px;
+  display: grid;
+  gap: 1rem;
+}
+
+.game .dhaka-band {
+  margin-bottom: 0;
+}
+
+.game__bar {
+  display: flex;
+  gap: 1rem;
+  align-items: baseline;
+}
+
+.game__table {
+  font-family: 'Yatra One', serif;
+  color: var(--marigold);
+  font-size: 1.2rem;
+}
+
+.game__scores {
+  margin-left: auto;
+  position: relative;
+}
+
+.game__scores summary {
+  cursor: pointer;
+  color: var(--muted);
+}
+
+.game__scores[open] .scores {
+  position: absolute;
+  right: 0;
+  top: 1.8rem;
+  z-index: 5;
+  background: var(--indigo-raised);
+  border: 1px solid var(--indigo-line);
+  border-radius: var(--radius);
+  padding: 0.5rem 0.8rem;
+  min-width: 14rem;
+}
+
+.opponents {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+  gap: 0.5rem;
+}
+
+.opponent {
+  padding: 0.45rem 0.7rem;
+  border-radius: var(--radius);
+  background: var(--indigo-raised);
+  border-top: 3px solid transparent;
+  display: grid;
+  gap: 0.15rem;
+}
+
+.opponent--turn {
+  border-top-color: var(--marigold);
+}
+
+.opponent--away {
+  opacity: 0.6;
+}
+
+.opponent__name {
+  font-weight: 700;
+}
+
+.opponent__meta {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.opponent__shown {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 0;
+}
+
+.felt {
+  padding: 1rem;
+  border-radius: 14px;
+  background: radial-gradient(90% 120% at 50% 40%, #233373, #17225a);
+  box-shadow: inset 0 0 0 1px var(--indigo-line);
+  display: grid;
+  gap: 0.75rem;
+  justify-items: center;
+}
+
+.felt__piles {
+  display: flex;
+  gap: 1.25rem;
+  align-items: flex-end;
+}
+
+.pile {
+  position: relative;
+  border: 0;
+  padding: 0;
+  background: none;
+  cursor: pointer;
+  border-radius: calc(var(--card-w) * 0.09);
+}
+
+.pile:disabled {
+  cursor: default;
+}
+
+.pile:not(:disabled) .card {
+  box-shadow: 0 0 0 3px var(--marigold);
+}
+
+.pile__count {
+  position: absolute;
+  bottom: -0.6rem;
+  left: 50%;
+  translate: -50% 0;
+  font-size: 0.75rem;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--text);
+}
+
+.tiplu {
+  display: grid;
+  justify-items: center;
+  gap: 0.15rem;
+  font-size: 0.8rem;
+  color: var(--marigold);
+}
+
+.tiplu .card {
+  --card-small: 34px;
+}
+
+.prompt {
+  margin: 0;
+  text-align: center;
+  color: var(--muted);
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.prompt--yours {
+  color: var(--marigold);
+  font-weight: 700;
+}
+
+.prompt__timer {
+  font-variant-numeric: tabular-nums;
+  padding: 0 0.5rem;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  font-weight: 500;
+}
+
+.me {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.me__shown {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 0;
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+/* The hand: overlapping fans, one per group, with clear gaps between groups. */
+.hand {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.1rem 1rem;
+  align-items: flex-start;
+  padding-top: 14px;
+}
+
+.group {
+  display: grid;
+  gap: 0.25rem;
+  justify-items: start;
+}
+
+.group__cards {
+  display: flex;
+}
+
+/* Keep ~60% of each covered card visible: a comfortable tap strip on phones. */
+.group__cards > .card + .card {
+  margin-left: calc(var(--card-w) * -0.4);
+}
+
+.group__cards > .card {
+  box-shadow: -2px 0 3px #0003;
+}
+
+.group__cards > .card--selected {
+  box-shadow:
+    0 0 0 3px var(--marigold),
+    0 6px 10px #0006;
+}
+
+.group__label {
+  font-size: 0.8rem;
+  color: var(--muted);
+  min-height: 1.2rem;
+}
+
+.group--set .group__label {
+  color: var(--positive);
+}
+
+.group__move {
+  font: inherit;
+  font-size: 0.8rem;
+  min-height: 32px;
+  padding: 0 0.6rem;
+  border-radius: 999px;
+  border: 1px dashed var(--marigold);
+  background: transparent;
+  color: var(--marigold);
+  cursor: pointer;
+}
+
+.group--new {
+  font: inherit;
+  width: var(--card-w);
+  aspect-ratio: 5 / 7;
+  border-radius: calc(var(--card-w) * 0.09);
+  border: 2px dashed var(--marigold);
+  background: transparent;
+  color: var(--marigold);
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.tools {
+  display: flex;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+}
+
+/* Results */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  background: #0b1030cc;
+  overflow-y: auto;
+  padding: 24px 16px;
+}
+
+.results {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 1.25rem;
+  border-radius: 14px;
+  background: var(--indigo-raised);
+  border-top: 6px solid var(--marigold);
+  display: grid;
+  gap: 1rem;
+}
+
+/* Grid children default to min-width: auto; let long card rows wrap instead. */
+.results > *,
+.results__seats > li {
+  min-width: 0;
+}
+
+.results h2 {
+  font-family: 'Yatra One', serif;
+  font-weight: 400;
+  font-size: 1.8rem;
+  color: var(--marigold);
+}
+
+.results__tiplu {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.results__seats {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.8rem;
+}
+
+.results__line {
+  display: flex;
+  gap: 0.75rem;
+  align-items: baseline;
+}
+
+.results__line strong {
+  margin-right: auto;
+}
+
+.results__cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 0;
+  margin-top: 0.25rem;
+}
+
+.scores {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.scores caption {
+  text-align: left;
+  color: var(--muted);
+  padding-bottom: 0.3rem;
+}
+
+.scores th,
+.scores td {
+  padding: 0.3rem 0;
+  border-bottom: 1px solid var(--indigo-line);
+}
+
+.scores th {
+  text-align: left;
+  font-weight: 500;
+}
+
+.scores td {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+/* Status */
+.loading {
+  padding: 30vh 16px 0;
+  text-align: center;
+  color: var(--muted);
+}
+
+.banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 0.3rem;
+  text-align: center;
+  background: var(--marigold);
+  color: var(--ink);
+  font-weight: 700;
+  z-index: 20;
+}
+
+.toast {
+  position: fixed;
+  left: 16px;
+  right: 16px;
+  bottom: 16px;
+  max-width: 32rem;
+  margin: 0 auto;
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.5rem 0.5rem 1rem;
+  border-radius: var(--radius);
+  background: var(--crimson);
+  color: #fff;
+  z-index: 20;
+}
+
+.toast .button--quiet {
+  color: #fff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    transition: none;
+  }
+}
+
+.final {
+  display: grid;
+  gap: 1.5rem;
+  justify-items: start;
+}
+
+.final .dhaka-band {
+  justify-self: stretch;
+  margin-bottom: 0;
 }

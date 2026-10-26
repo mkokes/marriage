@@ -253,7 +253,8 @@ function checkDiscardPickup(
   fail('You can only take the discard if it completes a set with cards in your hand');
 }
 
-const PRIMARY_KINDS: Record<RulesConfig['seeRequirement'], readonly SetKind[]> = {
+/** Set kinds that count toward seeing, per `seeRequirement`. */
+export const PRIMARY_KINDS: Record<RulesConfig['seeRequirement'], readonly SetKind[]> = {
   pureSequenceOrTunnela: ['pureSequence', 'tunnela'],
   pureSequenceOnly: ['pureSequence'],
 };

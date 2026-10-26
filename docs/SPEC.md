@@ -93,7 +93,7 @@ Presets: `Standard` (above) plus room for named house presets later. All options
 ## UX
 
 - Lobby: create table (name, rules preset/overrides), share link/QR, seat list, add bot, spectator join.
-- Table (phone portrait first, landscape supported): opponents around top, stock/discard center, hand at bottom with **auto-sort (suit/rank) + drag to group**; valid groups highlighted; "Show" and "Game" actions enabled only when the engine says they're valid. Maal/tiplu indicator once seen.
+- Table (phone portrait first, landscape supported): opponents around top, stock/discard center, hand at bottom as overlapping fans per group with **auto-sort (suit/rank) + tap to select, tap a group to move** (touch-friendly; drag-and-drop may follow); valid groups highlighted; "Show" and "Game" actions enabled only when the engine says they're valid. Maal/tiplu indicator once seen.
 - End-of-hand: reveal all hands, maal breakdown, settlement table, "next hand" (host). Replay viewer for finished hands.
 - Chat drawer + emoji reactions overlay.
 
