@@ -4,7 +4,7 @@ Play the Nepali card game Marriage with friends and family in the browser.
 
 A mobile-first, multiplayer web version of [Marriage](<https://en.wikipedia.org/wiki/Marriage_(card_game)>), the rummy-style game played with three decks, a hidden tiplu and maal points. Tables are private and joined by link, with no accounts. Rules vary a lot between households, so every rule and variant is a table setting, and a "Standard" preset covers the most common way to play.
 
-**Status:** early development. The rules engine is in place; the multiplayer server and the game UI are next. See the milestones in [docs/SPEC.md](docs/SPEC.md#milestones).
+**Status:** early development. The rules engine and the table server are in place; the game UI is next. See the milestones in [docs/SPEC.md](docs/SPEC.md#milestones).
 
 ## Features
 
@@ -24,6 +24,7 @@ Planned for v1 (see the [spec](docs/SPEC.md)):
 - Rules engine: dependency-free TypeScript (`packages/engine`)
 - Server: Cloudflare Workers + Durable Objects via [`partyserver`](https://www.npmjs.com/package/partyserver) (`apps/server`)
 - Client: Vite + React with `partysocket` and `vite-plugin-pwa` (`apps/web`)
+- Shared client/server protocol (`packages/protocol`)
 - Tooling: Vitest, oxlint, oxfmt, husky
 
 ## Getting started

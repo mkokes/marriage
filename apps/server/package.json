@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@marriage/engine": "workspace:*",
+    "@marriage/protocol": "workspace:*",
     "partyserver": "^0.5.10"
   },
   "devDependencies": {

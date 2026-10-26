@@ -13,6 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - pnpm monorepo: shared `@marriage/engine` package, a `partyserver` Cloudflare Worker with one Durable Object per table, and a Vite + React PWA client connected over `partysocket`.
 - Rules engine: seeded shuffling, configurable `RulesConfig` with a Standard preset, set validation (pure/dirty sequences, tunnelas, trials, dublees), tiplu roles and wild cards, maal points, the hand state machine (deal, draw, discard, see, finish, stock exhaustion), net settlement with penalties, kidnap and murder, and per-player redacted views.
 - Tooling: Vitest, oxlint (type-aware), oxfmt, and a husky pre-push hook running lint, format check, typecheck and tests.
+- Table server: seats with a host, rule changes between hands, dealing with a rotating first player, server-validated play, session scores and hand history, and spectators.
+- Turn timer: a Durable Object alarm auto-plays a timed-out turn (draw from the stock, discard the newest card).
+- Persistence: table state survives restarts and deploys, and every finished hand is stored as a replay (RNG key plus action log).
+- Reconnecting: devices keep a secret token that reclaims their seat; the server stores only its hash.
+- `@marriage/protocol` package with the client/server message types and runtime checks.
 
 ### Changed
 

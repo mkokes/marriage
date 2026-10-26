@@ -9,7 +9,10 @@ pnpm workspace, all TypeScript:
 - `packages/engine` — the rules engine. Pure and deterministic, with no I/O, so the server, client and (later) bots can all share it. Consumed as source (`exports` points at `src/index.ts`); there is no build step.
   - `cards.ts` card model and shoe, `random.ts` ChaCha20 RNG, `guards.ts` runtime type guards, `config.ts` `RulesConfig` + `STANDARD_RULES`, `sets.ts` set validation, `maal.ts` tiplu roles/wilds/points, `game.ts` hand state machine (`dealHand`, `applyAction`), `scoring.ts` settlement, `view.ts` per-player redaction (`viewFor`).
   - Tests sit next to each module (`*.test.ts`); `src/test/helpers.ts` builds cards from codes like `7H`, `10S`, `QS#2` (deck copy), `JK` (printed joker).
-- `apps/server` — Cloudflare Worker using `partyserver`: one Durable Object (`Table`) per game table, routed at `/parties/table/<room>`. Config in `wrangler.jsonc`.
+- `packages/protocol` — client↔server message types (`ClientMessage`, `ServerMessage`, `TableView`) and their runtime checks (`isClientMessage`). Shared by server and web.
+- `apps/server` — Cloudflare Worker using `partyserver`: one Durable Object (`Table`) per game table, routed at `/parties/table/<room>?token=<token>`. Config in `wrangler.jsonc`.
+  - `table.ts` is the pure table logic (seats, host, rules, hands, scores, turn timer, auto-play on timeout, per-connection views). Time, RNG keys and ids are injected via `TableDeps`, so it's tested in plain Node (`table.test.ts`).
+  - `index.ts` is the thin Durable Object: token hashing, message parsing, storage (`table` key, plus `replay:<n>` per finished hand), alarms and broadcasting. It hibernates, so all state must live in storage or connection state.
 - `apps/web` — Vite + React PWA, connects with `partysocket`. In dev, Vite proxies `/parties` to `wrangler dev` on port 8787.
 - `docs/SPEC.md` — product spec, rule decisions and milestones.
 
@@ -36,7 +39,8 @@ The **pre-push hook** runs `lint`, `format:check`, `typecheck` and `test`; all m
 - **Untrusted input:** `applyAction` takes `unknown` and checks the action's shape (`isAction`), and `validateRules` checks every rule field with bounds. Client or host input must never be able to throw.
 - **Immutable transitions:** `applyAction(state, action)` never mutates its input; it returns `{ ok: true, state }` or `{ ok: false, error }` with a player-facing message. Internally it works on a `structuredClone`, so validation may fail half-way safely.
 - **Rules are data:** any rule difference between households becomes a `RulesConfig` option with its Standard default in `STANDARD_RULES`, documented in the spec's config table. Don't hard-code a variant.
-- **Never trust the client:** the server must validate every client message as an engine action and only broadcast messages it builds itself. Never rebroadcast raw client input. Clients receive `viewFor(state, playerId)`, never raw `HandState` (which holds every hand, the stock order and the seed).
+- **Never trust the client:** the server must validate every client message (`isClientMessage`, then the engine) and only broadcast messages it builds itself. Never rebroadcast raw client input. Clients receive `tableView`/`viewFor` output, never raw `HandState` (which holds every hand, the stock order and the RNG key). The server overwrites `playerId` on game actions with the sender's own seat.
+- **Identity:** a device sends a secret token (`TOKEN_PATTERN`) when connecting; the server keeps only its SHA-256 hash (`credential`) and other clients see only the public `playerId`. Never put tokens or credentials in a view.
 - **Types:** strict TS with `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes`. Avoid `as` casts. The type-aware linter flags unsafe assertions, so narrow with type guards instead.
 - Formatting is oxfmt (single quotes, trailing commas, 100 columns); don't hand-format.
 

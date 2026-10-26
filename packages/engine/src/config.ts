@@ -125,3 +125,6 @@ export function validateRules(rules: unknown): string[] {
   if (r.kidnap === true && r.murder === true) errors.push('kidnap and murder cannot both be on');
   return errors;
 }
+
+export const isRulesConfig = (value: unknown): value is RulesConfig =>
+  validateRules(value).length === 0;

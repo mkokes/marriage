@@ -1,0 +1,250 @@
+import {
+  applyAction,
+  dealHand,
+  isRecord,
+  isRulesConfig,
+  MAX_PLAYERS,
+  MIN_PLAYERS,
+  STANDARD_RULES,
+  validateRules,
+  viewFor,
+  type HandState,
+  type RulesConfig,
+} from '@marriage/engine';
+import type { ClientMessage, HandSummary, TableStatus, TableView } from '@marriage/protocol';
+
+/**
+ * Pure table logic: seats, host, rules, hands, scores and the turn timer. The Durable
+ * Object wraps it with connections, storage and alarms. Players are identified by a
+ * `credential` (a hash of their device token) that never leaves the server; everyone
+ * else sees only their public `playerId`.
+ */
+export interface SeatState {
+  playerId: string;
+  name: string;
+  credential: string;
+}
+
+/** Enough to replay a finished hand through the engine. */
+export interface ReplayRecord {
+  handNumber: number;
+  key: string;
+  playerIds: string[];
+  rules: RulesConfig;
+  firstPlayer: number;
+  actions: unknown[];
+}
+
+export interface TableState {
+  status: TableStatus;
+  hostId: string | null;
+  seats: SeatState[];
+  rules: RulesConfig;
+  handNumber: number;
+  scores: Record<string, number>;
+  history: HandSummary[];
+  hand: HandState | null;
+  /** The current hand's seating and accepted actions, for its replay. */
+  handLog: Omit<ReplayRecord, 'key'> | null;
+  turnDeadline: number | null;
+}
+
+export interface TableDeps {
+  now(): number;
+  /** A 256-bit RNG key from a CSPRNG, as 64 hex chars. */
+  newKey(): string;
+  /** A fresh public player id. */
+  newId(): string;
+}
+
+export type Outcome =
+  | { ok: true; table: TableState; finished?: ReplayRecord }
+  | { ok: false; error: string };
+
+export function newTable(): TableState {
+  return {
+    status: 'lobby',
+    hostId: null,
+    seats: [],
+    rules: structuredClone(STANDARD_RULES),
+    handNumber: 0,
+    scores: {},
+    history: [],
+    hand: null,
+    handLog: null,
+    turnDeadline: null,
+  };
+}
+
+export const seatOf = (table: TableState, credential: string): SeatState | undefined =>
+  table.seats.find((s) => s.credential === credential);
+
+const fail = (error: string): Outcome => ({ ok: false, error });
+
+const betweenHands = (table: TableState) => table.status === 'lobby' || table.status === 'handOver';
+
+export function handleMessage(
+  table: TableState,
+  credential: string,
+  message: ClientMessage,
+  deps: TableDeps,
+): Outcome {
+  const next = structuredClone(table);
+  const seat = seatOf(next, credential);
+  const isHost = seat !== undefined && seat.playerId === next.hostId;
+  if (next.status === 'ended') return fail('The session has ended');
+
+  switch (message.type) {
+    case 'sit': {
+      const name = message.name.trim();
+      if (seat) {
+        seat.name = name;
+        return { ok: true, table: next };
+      }
+      if (!betweenHands(next)) return fail('You can only sit down between hands');
+      if (next.seats.length >= MAX_PLAYERS) return fail('The table is full');
+      const playerId = deps.newId();
+      next.seats.push({ playerId, name, credential });
+      next.hostId ??= playerId;
+      next.scores[playerId] ??= 0;
+      return { ok: true, table: next };
+    }
+    case 'leave': {
+      if (!seat) return fail("You aren't seated");
+      if (!betweenHands(next)) return fail("You can't leave in the middle of a hand");
+      next.seats = next.seats.filter((s) => s !== seat);
+      if (isHost) next.hostId = next.seats[0]?.playerId ?? null;
+      return { ok: true, table: next };
+    }
+    case 'setRules': {
+      if (!isHost) return fail('Only the host can change the rules');
+      if (!betweenHands(next)) return fail('Rules can only change between hands');
+      if (!isRulesConfig(message.rules)) {
+        return fail(`Invalid rules: ${validateRules(message.rules).join('; ')}`);
+      }
+      next.rules = structuredClone(message.rules);
+      return { ok: true, table: next };
+    }
+    case 'start': {
+      if (!isHost) return fail('Only the host can start a hand');
+      if (!betweenHands(next)) return fail('A hand is already in progress');
+      if (next.seats.length < MIN_PLAYERS)
+        return fail(`At least ${MIN_PLAYERS} players are needed`);
+      const playerIds = next.seats.map((s) => s.playerId);
+      const firstPlayer = next.handNumber % playerIds.length;
+      next.hand = dealHand({ playerIds, rules: next.rules, seed: deps.newKey(), firstPlayer });
+      next.handNumber++;
+      next.handLog = {
+        handNumber: next.handNumber,
+        playerIds,
+        rules: next.rules,
+        firstPlayer,
+        actions: [],
+      };
+      next.status = 'playing';
+      restartTimer(next, deps);
+      return { ok: true, table: next };
+    }
+    case 'action': {
+      if (next.status !== 'playing' || !next.hand) return fail('No hand is in progress');
+      if (!seat) return fail("You aren't playing in this hand");
+      if (!isRecord(message.action)) return fail('Malformed action');
+      // Players always act as themselves, whatever playerId the client sent.
+      return play(next, { ...message.action, playerId: seat.playerId }, deps);
+    }
+    case 'endSession': {
+      if (!isHost) return fail('Only the host can end the session');
+      // A hand in progress is abandoned without scoring.
+      next.status = 'ended';
+      next.turnDeadline = null;
+      return { ok: true, table: next };
+    }
+    default:
+      return fail('Unknown message');
+  }
+}
+
+/** Applies one engine action and handles the end of the hand. Mutates `table`. */
+function play(table: TableState, action: Record<string, unknown>, deps: TableDeps): Outcome {
+  const hand = table.hand!;
+  const result = applyAction(hand, action);
+  if (!result.ok) return result;
+
+  table.hand = result.state;
+  table.handLog!.actions.push(action);
+
+  if (result.state.phase !== 'over') {
+    if (result.state.turn !== hand.turn) restartTimer(table, deps);
+    return { ok: true, table };
+  }
+
+  const outcome = result.state.result!;
+  const net: Record<string, number> = {};
+  let winner: string | null = null;
+  if (outcome.kind === 'won') {
+    winner = table.handLog!.playerIds[outcome.winner]!;
+    table.handLog!.playerIds.forEach((id, seat) => {
+      net[id] = outcome.settlement.net[seat]!;
+      table.scores[id] = (table.scores[id] ?? 0) + net[id];
+    });
+  }
+  table.history.push({ handNumber: table.handNumber, winner, net });
+  table.status = 'handOver';
+  table.turnDeadline = null;
+  const finished = { ...table.handLog!, key: result.state.rng.key };
+  table.handLog = null;
+  return { ok: true, table, finished };
+}
+
+function restartTimer(table: TableState, deps: TableDeps): void {
+  const seconds = table.rules.turnTimerSeconds;
+  table.turnDeadline = seconds > 0 ? deps.now() + seconds * 1000 : null;
+}
+
+/**
+ * Plays the current turn for a player who ran out of time: draw from the stock (if
+ * not drawn yet), then discard the newest card that may be discarded. Returns null
+ * when nothing is due.
+ */
+export function handleTimeout(table: TableState, deps: TableDeps): Outcome | null {
+  if (table.status !== 'playing' || !table.hand || table.turnDeadline === null) return null;
+  if (deps.now() < table.turnDeadline) return null;
+
+  let next = structuredClone(table);
+  const playerId = next.hand!.players[next.hand!.turn]!.id;
+  if (next.hand!.phase === 'draw') {
+    const drawn = play(next, { type: 'drawStock', playerId }, deps);
+    if (!drawn.ok) return drawn;
+    next = drawn.table;
+  }
+  const hand = next.hand!;
+  const cards = hand.players[hand.turn]!.hand;
+  const card = cards.findLast((c) => c.id !== hand.pickedFromDiscard) ?? cards.at(-1)!;
+  return play(next, { type: 'discard', playerId, cardId: card.id }, deps);
+}
+
+/** The table as one connection may see it. `connected` holds credentials currently online. */
+export function tableView(
+  table: TableState,
+  credential: string | null,
+  connected: ReadonlySet<string>,
+): TableView {
+  const seat = credential === null ? undefined : seatOf(table, credential);
+  const playerId = seat?.playerId ?? null;
+  return {
+    status: table.status,
+    you: { playerId, isHost: playerId !== null && playerId === table.hostId },
+    hostId: table.hostId,
+    seats: table.seats.map((s) => ({
+      playerId: s.playerId,
+      name: s.name,
+      connected: connected.has(s.credential),
+    })),
+    rules: table.rules,
+    handNumber: table.handNumber,
+    scores: table.scores,
+    history: table.history,
+    hand: table.hand ? viewFor(table.hand, playerId) : null,
+    turnDeadline: table.turnDeadline,
+  };
+}

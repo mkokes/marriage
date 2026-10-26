@@ -1,39 +1,76 @@
-import { buildShoe } from '@marriage/engine';
+import { isRecord } from '@marriage/engine';
+import {
+  TABLE_PARTY,
+  type ClientMessage,
+  type ServerMessage,
+  type TableView,
+} from '@marriage/protocol';
 import { usePartySocket } from 'partysocket/react';
 import { useState } from 'react';
+import { deviceToken } from './token';
 
 const room = new URLSearchParams(window.location.search).get('table') ?? 'lobby';
+const token = deviceToken();
 
-function isPresence(message: unknown): message is { type: 'presence'; count: number } {
-  return (
-    typeof message === 'object' &&
-    message !== null &&
-    'type' in message &&
-    message.type === 'presence' &&
-    'count' in message &&
-    typeof message.count === 'number'
-  );
+function isServerMessage(value: unknown): value is ServerMessage {
+  return isRecord(value) && (value.type === 'table' || value.type === 'error');
 }
 
+/** Placeholder table screen until the game UI (milestone 4) lands. */
 export function App() {
-  const [connected, setConnected] = useState(0);
+  const [table, setTable] = useState<TableView | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [name, setName] = useState('');
 
-  usePartySocket({
-    party: 'table',
+  const socket = usePartySocket({
+    party: TABLE_PARTY,
     room,
+    query: { token },
     onMessage(event: MessageEvent<string>) {
       const message: unknown = JSON.parse(event.data);
-      if (isPresence(message)) setConnected(message.count);
+      if (!isServerMessage(message)) return;
+      if (message.type === 'table') {
+        setTable(message.table);
+        setError(null);
+      } else {
+        setError(message.message);
+      }
     },
   });
+
+  const send = (message: ClientMessage) => socket.send(JSON.stringify(message));
 
   return (
     <main>
       <h1>Marriage</h1>
       <p>
-        Table <strong>{room}</strong>: {connected} connected
+        Table <strong>{room}</strong>: {table?.status ?? 'connecting…'}
       </p>
-      <p>Shoe size (Standard): {buildShoe(3, false).length} cards</p>
+      <ul>
+        {table?.seats.map((seat) => (
+          <li key={seat.playerId}>
+            {seat.name}
+            {seat.playerId === table.hostId ? ' (host)' : ''}
+            {seat.connected ? '' : ' (away)'}: {table.scores[seat.playerId] ?? 0}
+          </li>
+        ))}
+      </ul>
+      {table && !table.you.playerId && (
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            send({ type: 'sit', name });
+          }}
+        >
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" />
+          <button type="submit">Sit down</button>
+        </form>
+      )}
+      {table?.you.isHost && table.status !== 'playing' && (
+        <button onClick={() => send({ type: 'start' })}>Deal a hand</button>
+      )}
+      {table?.hand?.you && <p>Your hand: {table.hand.you.hand.length} cards</p>}
+      {error && <p role="alert">{error}</p>}
     </main>
   );
 }
