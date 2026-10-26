@@ -1,5 +1,5 @@
 import { buildShoe } from '@marriage/engine';
-import usePartySocket from 'partysocket/react';
+import { usePartySocket } from 'partysocket/react';
 import { useState } from 'react';
 
 const room = new URLSearchParams(window.location.search).get('table') ?? 'lobby';

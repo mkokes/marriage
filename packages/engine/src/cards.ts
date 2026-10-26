@@ -6,7 +6,8 @@ export const RANKS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13] as const;
 export type Rank = (typeof RANKS)[number];
 
 export type Card =
-  { id: string; kind: 'standard'; suit: Suit; rank: Rank } | { id: string; kind: 'printedJoker' };
+  | { id: string; kind: 'standard'; suit: Suit; rank: Rank }
+  | { id: string; kind: 'printedJoker' };
 
 /**
  * Builds the unshuffled shoe: `decks` standard 52-card decks, plus two printed
