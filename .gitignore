@@ -1,8 +1,30 @@
+# Dependencies
 node_modules/
+
+# Build output
 dist/
 dev-dist/
+*.tsbuildinfo
+
+# Cloudflare / wrangler
 .wrangler/
 .dev.vars
-*.log
-.DS_Store
+.dev.vars.*
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Test output
 coverage/
+
+# Logs
+*.log
+
+# Editors / OS (shared VS Code extension recommendations are kept)
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
