@@ -1,0 +1,6 @@
+{
+  // Engine source only, without Node types: proves it stays runtime-agnostic.
+  "extends": "../../tsconfig.base.json",
+  "include": ["src"],
+  "exclude": ["src/**/*.test.ts", "src/test"]
+}
