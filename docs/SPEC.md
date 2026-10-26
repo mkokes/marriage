@@ -88,7 +88,7 @@ Presets: `Standard` (above) plus room for named house presets later. All options
   - `apps/server` — PartyKit-style server using **`partyserver`** on **Cloudflare Workers + Durable Objects**: one DO per table, authoritative state, WebSocket fan-out of redacted views (hands private, tiplu hidden from unseen), turn timers via DO alarms, bots run in-process.
   - `apps/web` — **Vite + React + TypeScript**, `partysocket` client, PWA (vite-plugin-pwa), mobile-first layout.
 - **Persistence (DO storage):** current game state (survives deploys/restarts), session score history, append-only action log per hand (enables **replays**: replay = seed + action log through the engine).
-- **Security/integrity:** server never sends other players' hands or unseen tiplu; client actions are intents validated by the engine; shuffle seed kept server-side until hand end.
+- **Security/integrity:** server never sends other players' hands or unseen tiplu; client actions are intents validated by the engine; shuffles use ChaCha20 under a 256-bit key from a CSPRNG, kept server-side until hand end (a small seed could be brute-forced from one player's hand); actions and rule settings are validated at runtime.
 
 ## UX
 
@@ -108,6 +108,6 @@ Presets: `Standard` (above) plus room for named house presets later. All options
 
 ## Verification
 
-- `pnpm test` — engine unit tests: every set type, joker use pre/post seeing, discard pickup rule, each config toggle, settlement sums to zero (before penalties), kidnap/murder.
+- `pnpm test` — engine unit tests: every set type, joker use pre/post seeing, discard pickup rule, each config toggle, settlement always sums to zero, kidnap/murder.
 - Bot-vs-bot simulation: thousands of seeded hands complete without engine errors.
 - `wrangler dev` + `vite` locally; open 3 browser tabs (one mobile emulation via Chrome DevTools/Playwright), play a hand end to end, kill/reload a tab to test reconnect, restart server to test persistence, verify redacted payloads in network inspector.
