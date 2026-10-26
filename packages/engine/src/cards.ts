@@ -29,3 +29,12 @@ export function buildShoe(decks: number, printedJokers: boolean): Card[] {
   }
   return shoe;
 }
+
+export const isRed = (suit: Suit): boolean => suit === 'diamonds' || suit === 'hearts';
+
+/** Identity ignoring which deck a card came from: the three 7♥ share a face. */
+export function faceKey(card: Card): string {
+  return card.kind === 'printedJoker' ? 'joker' : `${card.suit}-${card.rank}`;
+}
+
+export const sameFace = (a: Card, b: Card): boolean => faceKey(a) === faceKey(b);
