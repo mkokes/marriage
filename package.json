@@ -12,7 +12,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "pnpm -r typecheck",
-    "lint": "oxlint --deny-warnings",
+    "lint": "oxlint --type-aware --deny-warnings",
     "format": "oxfmt",
     "format:check": "oxfmt --check",
     "prepare": "husky"
@@ -22,7 +22,8 @@
     "husky": "^9.1.7",
     "oxfmt": "^0.74.0",
     "oxlint": "^1.89.0",
-    "typescript": "~6.0.3",
+    "oxlint-tsgolint": "^7.0.2005",
+    "typescript": "~7.0.2",
     "vitest": "^5.0.5"
   }
 }

@@ -12,7 +12,10 @@
       {
         "allow": ["**/*.css"]
       }
-    ]
+    ],
+    "typescript/no-floating-promises": "error",
+    "typescript/no-misused-promises": "error",
+    "typescript/await-thenable": "error"
   },
   "ignorePatterns": ["**/dist/", "**/dev-dist/", "**/.wrangler/"]
 }
