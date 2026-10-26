@@ -1,4 +1,4 @@
-import { routePartykitRequest, Server, type Connection } from 'partyserver';
+import { routePartykitRequest, Server } from 'partyserver';
 
 export interface Env {
   Table: DurableObjectNamespace<Table>;
@@ -7,6 +7,8 @@ export interface Env {
 /**
  * One Durable Object per game table (the room name is the table code). It will
  * hold the authoritative game state; for now it only tracks who is connected.
+ * Client messages are ignored (the default `onMessage`) until validated game intents
+ * exist — raw client input must never be rebroadcast, or peers could forge server messages.
  */
 export class Table extends Server<Env> {
   override onConnect(): void {
@@ -15,10 +17,6 @@ export class Table extends Server<Env> {
 
   override onClose(): void {
     this.broadcastPresence();
-  }
-
-  override onMessage(connection: Connection, message: string | ArrayBuffer): void {
-    this.broadcast(message, [connection.id]);
   }
 
   private broadcastPresence(): void {
