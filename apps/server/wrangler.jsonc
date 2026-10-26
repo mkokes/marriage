@@ -1,0 +1,10 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "marriage-server",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  "durable_objects": {
+    "bindings": [{ "name": "Table", "class_name": "Table" }],
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Table"] }],
+}
