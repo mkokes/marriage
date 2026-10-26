@@ -1,17 +1,20 @@
 import { MAX_PLAYERS, MIN_PLAYERS } from '@marriage/engine';
 import type { ClientMessage, TableView } from '@marriage/protocol';
 import { useState } from 'react';
+import { ReactionBubble } from './ReactionBubble';
 import { RulesEditor } from './RulesEditor';
 import { ruleChanges } from './rules';
 import { SitForm } from './SitForm';
+import type { Reactions } from './useTable';
 
 interface Props {
   room: string;
   table: TableView;
   send: (message: ClientMessage) => void;
+  reactions: Reactions;
 }
 
-export function Lobby({ room, table, send }: Props) {
+export function Lobby({ room, table, send, reactions }: Props) {
   const [copied, setCopied] = useState(false);
   const [editing, setEditing] = useState(false);
   const link = `${window.location.origin}${window.location.pathname}?table=${room}`;
@@ -58,10 +61,26 @@ export function Lobby({ room, table, send }: Props) {
               <span className="seat__name">{seat.name}</span>
               {seat.playerId === table.hostId && <span className="tag">Host</span>}
               {seat.playerId === table.you.playerId && <span className="tag tag--you">You</span>}
+              {seat.isBot && <span className="tag">Bot</span>}
               {!seat.connected && <span className="muted">away</span>}
+              <ReactionBubble reactions={reactions} playerId={seat.playerId} />
+              {seat.isBot && table.you.isHost && (
+                <button
+                  type="button"
+                  className="button button--quiet seat__remove"
+                  onClick={() => send({ type: 'removeBot', playerId: seat.playerId })}
+                >
+                  Remove
+                </button>
+              )}
             </li>
           ))}
         </ol>
+        {table.you.isHost && table.seats.length < MAX_PLAYERS && (
+          <button type="button" className="button" onClick={() => send({ type: 'addBot' })}>
+            Add a bot
+          </button>
+        )}
         {table.you.playerId ? (
           !table.you.isHost && (
             <button

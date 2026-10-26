@@ -2,6 +2,8 @@ import { isRecord } from '@marriage/engine';
 import {
   TABLE_PARTY,
   type ClientMessage,
+  type Reaction,
+  type ReplayRecord,
   type ServerMessage,
   type TableView,
 } from '@marriage/protocol';
@@ -11,17 +13,31 @@ import { deviceToken } from './token';
 
 const token = deviceToken();
 
+/**
+ * Where the game server lives. Production builds set VITE_GAME_HOST (the Worker's
+ * domain); in development the page's own host is used and Vite proxies /parties.
+ */
+const host = import.meta.env.VITE_GAME_HOST || window.location.host;
+
+const SERVER_TYPES = new Set(['table', 'error', 'reaction', 'replay']);
+
 function isServerMessage(value: unknown): value is ServerMessage {
-  return isRecord(value) && (value.type === 'table' || value.type === 'error');
+  return isRecord(value) && typeof value.type === 'string' && SERVER_TYPES.has(value.type);
 }
+
+export type Reactions = Record<string, { emoji: Reaction; at: number }>;
 
 /** Connects to a table and keeps its latest view. Errors clear on the next update. */
 export function useTable(room: string) {
   const [table, setTable] = useState<TableView | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [connected, setConnected] = useState(false);
+  /** The latest reaction from each player, with when it arrived. */
+  const [reactions, setReactions] = useState<Reactions>({});
+  const [replay, setReplay] = useState<ReplayRecord | null>(null);
 
   const socket = usePartySocket({
+    host,
     party: TABLE_PARTY,
     room,
     query: { token },
@@ -35,11 +51,23 @@ export function useTable(room: string) {
         return;
       }
       if (!isServerMessage(message)) return;
-      if (message.type === 'table') {
-        setTable(message.table);
-        setError(null);
-      } else {
-        setError(message.message);
+      switch (message.type) {
+        case 'table':
+          setTable(message.table);
+          setError(null);
+          break;
+        case 'error':
+          setError(message.message);
+          break;
+        case 'reaction':
+          setReactions((r) => ({
+            ...r,
+            [message.playerId]: { emoji: message.emoji, at: Date.now() },
+          }));
+          break;
+        case 'replay':
+          setReplay(message.replay);
+          break;
       }
     },
   });
@@ -49,6 +77,7 @@ export function useTable(room: string) {
     [socket],
   );
   const dismissError = useCallback(() => setError(null), []);
+  const closeReplay = useCallback(() => setReplay(null), []);
 
-  return { table, error, connected, send, dismissError };
+  return { table, error, connected, send, dismissError, reactions, replay, closeReplay };
 }

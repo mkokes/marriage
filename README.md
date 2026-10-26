@@ -4,7 +4,7 @@ Play the Nepali card game Marriage with friends and family in the browser.
 
 A mobile-first, multiplayer web version of [Marriage](<https://en.wikipedia.org/wiki/Marriage_(card_game)>), the rummy-style game played with three decks, a hidden tiplu and maal points. Tables are private and joined by link, with no accounts. Rules vary a lot between households, so every rule and variant is a table setting, and a "Standard" preset covers the most common way to play.
 
-**Status:** playable. You can start a table, invite players by link and play hands end to end. Bots, chat and replays are next. See the milestones in [docs/SPEC.md](docs/SPEC.md#milestones).
+**Status:** playable. Start a table, invite players by link or fill seats with bots, chat and react, and watch replays of finished hands. Deployment is next. See the milestones in [docs/SPEC.md](docs/SPEC.md#milestones).
 
 ## Features
 
@@ -49,6 +49,22 @@ pnpm format      # format code
 pnpm typecheck   # type-check every package
 pnpm build       # production build of the web app
 ```
+
+### Deploying
+
+The app is deployed in two parts:
+
+- **Web app:** [cards.martykokes.com](https://cards.martykokes.com), on GitHub Pages. The [Pages workflow](.github/workflows/pages.yml) runs the checks, builds it and publishes it on every push to `main`.
+- **Game server:** `cards-api.martykokes.com`, a Cloudflare Worker with one Durable Object per table. It accepts game connections only from the web app's origin (and `localhost`). Deploy it from your machine; the free Workers plan is enough for private games.
+
+```sh
+pnpm --filter @marriage/server exec wrangler login   # once, opens a browser
+pnpm run deploy    # deploys the Worker (creates the custom domain's DNS on first deploy)
+```
+
+Use `pnpm run deploy`, not `pnpm deploy`, which is a built-in pnpm command. Deploy the Worker before (or with) any web change that relies on new server behavior.
+
+`pnpm run preview` serves the production web build on `http://localhost:4173` against a local Worker.
 
 A pre-push hook runs lint, format check, typecheck and tests. Work happens on branches and lands through pull requests.
 

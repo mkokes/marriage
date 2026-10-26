@@ -3,8 +3,10 @@ import type { ClientMessage } from '@marriage/protocol';
 import { describe, expect, it } from 'vitest';
 import {
   handleMessage,
+  BOT_DELAY_MS,
   handleTimeout,
   newTable,
+  nextWake,
   tableView,
   type Outcome,
   type ReplayRecord,
@@ -68,7 +70,10 @@ describe('seats', () => {
   it('updates the name when a seated player sits again', () => {
     const { table, deps } = seated(1);
     const renamed = ok(send(table, 'c1', { type: 'sit', name: '  Asha  ' }, deps));
-    expect(renamed.seats).toEqual([{ playerId: 'player-1', name: 'Asha', credential: 'c1' }]);
+    expect(renamed.seats).toEqual([
+      { playerId: 'player-1', name: 'Asha', credential: 'c1', isBot: false },
+    ]);
+    expect(renamed.names).toEqual({ 'player-1': 'Asha' });
   });
 
   it('refuses a sixth player and players arriving mid-hand', () => {
@@ -233,5 +238,80 @@ describe('tableView', () => {
     const view = tableView(table, 'stranger', new Set());
     expect(view.you).toEqual({ playerId: null, isHost: false });
     expect(view.hand!.you).toBeNull();
+  });
+});
+
+describe('bots', () => {
+  it('lets the host add and remove bots between hands', () => {
+    const { table, deps } = seated(1);
+    expect(err(send(table, 'c2', { type: 'addBot' }, deps))).toMatch(/Only the host/);
+    const withBot = ok(send(table, 'c1', { type: 'addBot' }, deps));
+    const bot = withBot.seats[1]!;
+    expect(bot).toMatchObject({ name: 'Hari', isBot: true, credential: `bot:${bot.playerId}` });
+    expect(tableView(withBot, 'c1', new Set()).seats[1]).toMatchObject({
+      isBot: true,
+      connected: true,
+    });
+
+    const removed = ok(send(withBot, 'c1', { type: 'removeBot', playerId: bot.playerId }, deps));
+    expect(removed.seats).toHaveLength(1);
+    expect(err(send(removed, 'c1', { type: 'removeBot', playerId: 'player-1' }, deps))).toMatch(
+      /not at the table/,
+    );
+  });
+
+  it('plays a bot turn once it is due', () => {
+    const { table: lobby, deps } = seated(1);
+    let table = ok(send(lobby, 'c1', { type: 'addBot' }, deps));
+    table = ok(send(table, 'c1', { type: 'start' }, deps));
+    expect(table.botDueAt).toBeNull(); // the human (seat 0) starts
+
+    table = ok(send(table, 'c1', { type: 'action', action: { type: 'drawStock' } }, deps));
+    const cardId = table.hand!.players[0]!.hand.at(-1)!.id;
+    table = ok(send(table, 'c1', { type: 'action', action: { type: 'discard', cardId } }, deps));
+    expect(table.botDueAt).toBe(deps.now() + BOT_DELAY_MS);
+    expect(nextWake(table)).toBe(table.botDueAt);
+    expect(handleTimeout(table, deps)).toBeNull();
+
+    deps.advance(BOT_DELAY_MS);
+    table = ok(handleTimeout(table, deps));
+    expect(table.hand!.turn).toBe(0);
+    expect(table.hand!.players[1]!.hand).toHaveLength(21);
+    expect(table.botDueAt).toBeNull();
+    expect(table.handLog!.actions).toHaveLength(4);
+  });
+
+  it('finishes whole hands with bots and a timed-out human', () => {
+    const { table: lobby, deps } = seated(1);
+    let table = lobby;
+    for (let i = 0; i < 3; i++) table = ok(send(table, 'c1', { type: 'addBot' }, deps));
+    table = ok(send(table, 'c1', { type: 'start' }, deps));
+    for (let i = 0; i < 2000 && table.status === 'playing'; i++) {
+      deps.advance(Math.max(0, nextWake(table)! - deps.now()));
+      table = ok(handleTimeout(table, deps));
+    }
+    expect(table.status).toBe('handOver');
+    expect(table.history).toHaveLength(1);
+  });
+});
+
+describe('chat and reactions', () => {
+  it('keeps recent chat from seated players only', () => {
+    let { table, deps } = seated(2);
+    expect(err(send(table, 'stranger', { type: 'chat', text: 'hi' }, deps))).toMatch(/Sit down/);
+    table = ok(send(table, 'c2', { type: 'chat', text: '  namaste  ' }, deps));
+    expect(table.chat).toEqual([{ playerId: 'player-2', text: 'namaste', at: deps.now() }]);
+    for (let i = 0; i < 60; i++)
+      table = ok(send(table, 'c1', { type: 'chat', text: `${i}` }, deps));
+    expect(table.chat).toHaveLength(50);
+    expect(table.chat.at(-1)!.text).toBe('59');
+    expect(tableView(table, null, new Set()).chat).toHaveLength(50);
+  });
+
+  it('returns reactions for broadcast without changing the table', () => {
+    const { table, deps } = seated(2);
+    const outcome = send(table, 'c2', { type: 'react', emoji: '👏' }, deps);
+    expect(outcome).toMatchObject({ ok: true, reaction: { playerId: 'player-2', emoji: '👏' } });
+    expect(outcome.ok && outcome.table).toEqual(table);
   });
 });

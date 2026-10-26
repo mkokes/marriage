@@ -1,10 +1,20 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "marriage-server",
+  "name": "marriage",
   "main": "src/index.ts",
   "compatibility_date": "2026-10-01",
+  // The game server only. The web app is on GitHub Pages (cards.martykokes.com).
+  // Wrangler creates the DNS record and certificate for this custom domain on deploy.
+  "routes": [{ "pattern": "cards-api.martykokes.com", "custom_domain": true }],
+  "workers_dev": false,
+  "vars": {
+    // Browser origins allowed to open game connections (comma-separated).
+    // Any http://localhost origin is also allowed, for local development.
+    "ALLOWED_ORIGINS": "https://cards.martykokes.com",
+  },
   "durable_objects": {
     "bindings": [{ "name": "Table", "class_name": "Table" }],
   },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Table"] }],
+  "observability": { "enabled": true },
 }

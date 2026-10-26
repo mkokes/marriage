@@ -1,5 +1,6 @@
 import {
   applyAction,
+  chooseBotAction,
   dealHand,
   isRecord,
   isRulesConfig,
@@ -11,7 +12,22 @@ import {
   type HandState,
   type RulesConfig,
 } from '@marriage/engine';
-import type { ClientMessage, HandSummary, TableStatus, TableView } from '@marriage/protocol';
+import {
+  CHAT_HISTORY,
+  type ChatMessage,
+  type ClientMessage,
+  type HandSummary,
+  type Reaction,
+  type ReplayRecord,
+  type TableStatus,
+  type TableView,
+} from '@marriage/protocol';
+
+export type { ReplayRecord };
+
+/** How long a bot "thinks" before playing its turn. */
+export const BOT_DELAY_MS = 900;
+const BOT_NAMES = ['Hari', 'Sita', 'Gopal', 'Maya', 'Bishnu', 'Kamala'];
 
 /**
  * Pure table logic: seats, host, rules, hands, scores and the turn timer. The Durable
@@ -22,17 +38,9 @@ import type { ClientMessage, HandSummary, TableStatus, TableView } from '@marria
 export interface SeatState {
   playerId: string;
   name: string;
+  /** For bots, `bot:<playerId>`; it can never equal a token hash. */
   credential: string;
-}
-
-/** Enough to replay a finished hand through the engine. */
-export interface ReplayRecord {
-  handNumber: number;
-  key: string;
-  playerIds: string[];
-  rules: RulesConfig;
-  firstPlayer: number;
-  actions: unknown[];
+  isBot: boolean;
 }
 
 export interface TableState {
@@ -43,10 +51,15 @@ export interface TableState {
   handNumber: number;
   scores: Record<string, number>;
   history: HandSummary[];
+  /** Every player's latest name, kept after they leave so history stays readable. */
+  names: Record<string, string>;
+  chat: ChatMessage[];
   hand: HandState | null;
   /** The current hand's seating and accepted actions, for its replay. */
   handLog: Omit<ReplayRecord, 'key'> | null;
   turnDeadline: number | null;
+  /** When the bot whose turn it is should play. */
+  botDueAt: number | null;
 }
 
 export interface TableDeps {
@@ -58,7 +71,14 @@ export interface TableDeps {
 }
 
 export type Outcome =
-  | { ok: true; table: TableState; finished?: ReplayRecord }
+  | {
+      ok: true;
+      table: TableState;
+      /** Set when a hand just ended: its replay, to store. */
+      finished?: ReplayRecord;
+      /** Set for a reaction: broadcast it, don't store it. */
+      reaction?: { playerId: string; emoji: Reaction };
+    }
   | { ok: false; error: string };
 
 export function newTable(): TableState {
@@ -70,9 +90,12 @@ export function newTable(): TableState {
     handNumber: 0,
     scores: {},
     history: [],
+    names: {},
+    chat: [],
     hand: null,
     handLog: null,
     turnDeadline: null,
+    botDueAt: null,
   };
 }
 
@@ -99,15 +122,49 @@ export function handleMessage(
       const name = message.name.trim();
       if (seat) {
         seat.name = name;
+        next.names[seat.playerId] = name;
         return { ok: true, table: next };
       }
       if (!betweenHands(next)) return fail('You can only sit down between hands');
       if (next.seats.length >= MAX_PLAYERS) return fail('The table is full');
       const playerId = deps.newId();
-      next.seats.push({ playerId, name, credential });
+      next.seats.push({ playerId, name, credential, isBot: false });
       next.hostId ??= playerId;
       next.scores[playerId] ??= 0;
+      next.names[playerId] = name;
       return { ok: true, table: next };
+    }
+    case 'addBot': {
+      if (!isHost) return fail('Only the host can add bots');
+      if (!betweenHands(next)) return fail('Bots can only join between hands');
+      if (next.seats.length >= MAX_PLAYERS) return fail('The table is full');
+      const taken = new Set(next.seats.map((s) => s.name));
+      const name = BOT_NAMES.find((n) => !taken.has(n)) ?? `Bot ${next.seats.length + 1}`;
+      const playerId = deps.newId();
+      next.seats.push({ playerId, name, credential: `bot:${playerId}`, isBot: true });
+      next.scores[playerId] ??= 0;
+      next.names[playerId] = name;
+      return { ok: true, table: next };
+    }
+    case 'removeBot': {
+      if (!isHost) return fail('Only the host can remove bots');
+      if (!betweenHands(next)) return fail('Bots can only leave between hands');
+      const bot = next.seats.find((s) => s.playerId === message.playerId && s.isBot);
+      if (!bot) return fail('That bot is not at the table');
+      next.seats = next.seats.filter((s) => s !== bot);
+      return { ok: true, table: next };
+    }
+    case 'chat': {
+      if (!seat) return fail('Sit down to chat');
+      next.chat = [
+        ...next.chat,
+        { playerId: seat.playerId, text: message.text.trim(), at: deps.now() },
+      ].slice(-CHAT_HISTORY);
+      return { ok: true, table: next };
+    }
+    case 'react': {
+      if (!seat) return fail('Sit down to react');
+      return { ok: true, table: next, reaction: { playerId: seat.playerId, emoji: message.emoji } };
     }
     case 'leave': {
       if (!seat) return fail("You aren't seated");
@@ -157,6 +214,7 @@ export function handleMessage(
       // A hand in progress is abandoned without scoring.
       next.status = 'ended';
       next.turnDeadline = null;
+      next.botDueAt = null;
       return { ok: true, table: next };
     }
     default:
@@ -191,26 +249,65 @@ function play(table: TableState, action: Record<string, unknown>, deps: TableDep
   table.history.push({ handNumber: table.handNumber, winner, net });
   table.status = 'handOver';
   table.turnDeadline = null;
+  table.botDueAt = null;
   const finished = { ...table.handLog!, key: result.state.rng.key };
   table.handLog = null;
   return { ok: true, table, finished };
 }
 
+/** Starts the clock for a new turn: the turn timer, and the bot's move if it's a bot. */
 function restartTimer(table: TableState, deps: TableDeps): void {
   const seconds = table.rules.turnTimerSeconds;
   table.turnDeadline = seconds > 0 ? deps.now() + seconds * 1000 : null;
+  const hand = table.hand!;
+  const current = hand.players[hand.turn]!.id;
+  table.botDueAt = isBot(table, current) ? deps.now() + BOT_DELAY_MS : null;
+}
+
+const isBot = (table: TableState, playerId: string) =>
+  table.seats.some((s) => s.playerId === playerId && s.isBot);
+
+/** The next time the table needs waking (a turn timeout or a bot move), if any. */
+export function nextWake(table: TableState): number | null {
+  const times = [table.turnDeadline, table.botDueAt].filter((t) => t !== null);
+  return times.length ? Math.min(...times) : null;
 }
 
 /**
- * Plays the current turn for a player who ran out of time: draw from the stock (if
- * not drawn yet), then discard the newest card that may be discarded. Returns null
- * when nothing is due.
+ * Runs whatever is due: a bot's turn, or the turn of a player who ran out of time.
+ * Returns null when nothing is due.
  */
 export function handleTimeout(table: TableState, deps: TableDeps): Outcome | null {
-  if (table.status !== 'playing' || !table.hand || table.turnDeadline === null) return null;
-  if (deps.now() < table.turnDeadline) return null;
+  if (table.status !== 'playing' || !table.hand) return null;
+  const now = deps.now();
+  if (table.botDueAt !== null && now >= table.botDueAt) return playBotTurn(table, deps);
+  if (table.turnDeadline === null || now < table.turnDeadline) return null;
+  return autoPlay(structuredClone(table), deps);
+}
 
+/** A bot draws, then discards (or shows, or finishes), deciding from its own view. */
+function playBotTurn(table: TableState, deps: TableDeps): Outcome {
   let next = structuredClone(table);
+  next.botDueAt = null;
+  const playerId = next.hand!.players[next.hand!.turn]!.id;
+  while (next.status === 'playing' && next.hand!.players[next.hand!.turn]!.id === playerId) {
+    const before = next.hand!;
+    let outcome = play(next, chooseBotAction(viewFor(before, playerId)), deps);
+    // A bot bug must never stall the table: fall back to the timeout move.
+    if (!outcome.ok) outcome = autoPlay(next, deps);
+    if (!outcome.ok || outcome.finished) return outcome;
+    next = outcome.table;
+    if (next.hand!.turn !== before.turn) break;
+  }
+  return { ok: true, table: next };
+}
+
+/**
+ * Plays the current turn the simple way: draw from the stock (if not drawn yet), then
+ * discard the newest card that may be discarded. Mutates and returns `table`.
+ */
+function autoPlay(table: TableState, deps: TableDeps): Outcome {
+  let next = table;
   const playerId = next.hand!.players[next.hand!.turn]!.id;
   if (next.hand!.phase === 'draw') {
     const drawn = play(next, { type: 'drawStock', playerId }, deps);
@@ -238,12 +335,15 @@ export function tableView(
     seats: table.seats.map((s) => ({
       playerId: s.playerId,
       name: s.name,
-      connected: connected.has(s.credential),
+      connected: s.isBot || connected.has(s.credential),
+      isBot: s.isBot,
     })),
     rules: table.rules,
     handNumber: table.handNumber,
     scores: table.scores,
     history: table.history,
+    names: table.names,
+    chat: table.chat,
     hand: table.hand ? viewFor(table.hand, playerId) : null,
     turnDeadline: table.turnDeadline,
   };

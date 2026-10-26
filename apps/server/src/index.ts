@@ -3,6 +3,7 @@ import {
   isClientMessage,
   MAX_MESSAGE_BYTES,
   TOKEN_PATTERN,
+  type ReplayRecord,
   type ServerMessage,
 } from '@marriage/protocol';
 import {
@@ -12,10 +13,12 @@ import {
   type ConnectionContext,
   type WSMessage,
 } from 'partyserver';
+import { isAllowedOrigin } from './origin';
 import {
   handleMessage,
   handleTimeout,
   newTable,
+  nextWake,
   tableView,
   type Outcome,
   type TableDeps,
@@ -24,6 +27,8 @@ import {
 
 export interface Env {
   Table: DurableObjectNamespace<Table>;
+  /** Comma-separated browser origins allowed to connect (see wrangler.jsonc). */
+  ALLOWED_ORIGINS: string;
 }
 
 const toHex = (bytes: Uint8Array): string =>
@@ -50,6 +55,9 @@ const credentialOf = (connection: Connection): string | null => {
 const send = (connection: Connection, message: ServerMessage) =>
   connection.send(JSON.stringify(message));
 
+/** Minimum gap between chat messages or reactions from one player. */
+const SOCIAL_INTERVAL_MS = 500;
+
 /**
  * One Durable Object per table (the room name is the table code). It owns the
  * authoritative state, persists it after every change, and sends each connection its
@@ -59,6 +67,8 @@ export class Table extends Server<Env> {
   static override options = { hibernate: true };
 
   private table: TableState = newTable();
+  /** Last chat/reaction time per credential; in memory only, so it resets on hibernation. */
+  private lastSocial = new Map<string, number>();
 
   override async onStart(): Promise<void> {
     this.table = (await this.ctx.storage.get<TableState>('table')) ?? newTable();
@@ -96,6 +106,21 @@ export class Table extends Server<Env> {
       send(connection, { type: 'error', message: 'Unknown message' });
       return;
     }
+    if (parsed.type === 'getReplay') {
+      const replay = await this.ctx.storage.get<ReplayRecord>(`replay:${parsed.handNumber}`);
+      send(
+        connection,
+        replay
+          ? { type: 'replay', replay }
+          : { type: 'error', message: 'That hand has no replay yet' },
+      );
+      return;
+    }
+    if (parsed.type === 'chat' || parsed.type === 'react') {
+      const last = this.lastSocial.get(credential) ?? 0;
+      if (Date.now() - last < SOCIAL_INTERVAL_MS) return;
+      this.lastSocial.set(credential, Date.now());
+    }
     await this.commit(handleMessage(this.table, credential, parsed, deps), connection);
   }
 
@@ -110,6 +135,12 @@ export class Table extends Server<Env> {
       if (connection) send(connection, { type: 'error', message: outcome.error });
       return;
     }
+    if (outcome.reaction) {
+      this.broadcast(
+        JSON.stringify({ type: 'reaction', ...outcome.reaction } satisfies ServerMessage),
+      );
+      return;
+    }
     this.table = outcome.table;
     await this.ctx.storage.put('table', this.table);
     if (outcome.finished) {
@@ -120,8 +151,9 @@ export class Table extends Server<Env> {
   }
 
   private async scheduleAlarm(): Promise<void> {
-    if (this.table.turnDeadline === null) await this.ctx.storage.deleteAlarm();
-    else await this.ctx.storage.setAlarm(this.table.turnDeadline);
+    const wake = nextWake(this.table);
+    if (wake === null) await this.ctx.storage.deleteAlarm();
+    else await this.ctx.storage.setAlarm(wake);
   }
 
   private broadcastTable(): void {
@@ -136,6 +168,12 @@ export class Table extends Server<Env> {
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    return (await routePartykitRequest(request, env)) || new Response('Not Found', { status: 404 });
+    if (!isAllowedOrigin(request.headers.get('Origin'), env.ALLOWED_ORIGINS)) {
+      return new Response('Forbidden origin', { status: 403 });
+    }
+    return (
+      (await routePartykitRequest(request, env)) ??
+      new Response('Marriage game server. Play at https://cards.martykokes.com', { status: 404 })
+    );
   },
 } satisfies ExportedHandler<Env>;
