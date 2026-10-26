@@ -15,7 +15,9 @@
     "lint": "oxlint --type-aware --deny-warnings",
     "format": "oxfmt",
     "format:check": "oxfmt --check",
-    "prepare": "husky"
+    "prepare": "husky",
+    "deploy": "pnpm --filter @marriage/web build && pnpm --filter @marriage/server run deploy",
+    "preview": "pnpm --filter @marriage/web build && pnpm --filter @marriage/server exec wrangler dev"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",

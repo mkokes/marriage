@@ -26,6 +26,8 @@ import {
 
 export interface Env {
   Table: DurableObjectNamespace<Table>;
+  /** The web app's static build (see `assets` in wrangler.jsonc). */
+  ASSETS: Fetcher;
 }
 
 const toHex = (bytes: Uint8Array): string =>
@@ -165,6 +167,6 @@ export class Table extends Server<Env> {
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    return (await routePartykitRequest(request, env)) || new Response('Not Found', { status: 404 });
+    return (await routePartykitRequest(request, env)) ?? env.ASSETS.fetch(request);
   },
 } satisfies ExportedHandler<Env>;

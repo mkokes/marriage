@@ -32,6 +32,8 @@ pnpm lint             # oxlint, type-aware, warnings fail
 pnpm format           # oxfmt (format:check to verify only)
 pnpm typecheck        # tsc per package
 pnpm build            # builds the web app
+pnpm run preview      # production build served by wrangler dev on :8787 (one Worker: assets + game)
+pnpm run deploy       # build + wrangler deploy (needs `wrangler login`); not `pnpm deploy`, a pnpm built-in
 ```
 
 The **pre-push hook** runs `lint`, `format:check`, `typecheck` and `test`; all must pass before pushing.
@@ -49,6 +51,7 @@ The **pre-push hook** runs `lint`, `format:check`, `typecheck` and `test`; all m
 
 ## Gotchas
 
+- **Deployment:** one Worker named `marriage` serves `apps/web/dist` as static assets (single-page-app fallback) and runs the game at `/parties/*` (`run_worker_first`). The Worker falls back to `env.ASSETS` for everything else. Build the web app before `wrangler deploy`.
 - **TypeScript 7** (the Go-based compiler) is in use, with `oxlint-tsgolint` for type-aware lint. Target/lib is ES2023.
 - The engine has two tsconfigs. `tsconfig.json` includes tests and Node types (for the editor, linter and test-only `node:crypto`). `tsconfig.src.json` checks the source alone without Node or DOM types, so the engine can't come to depend on one runtime; `structuredClone` is declared in `src/globals.d.ts` for it. `pnpm typecheck` runs both.
 - pnpm 10 blocks dependency install scripts. `esbuild` and `workerd` are allow-listed in `pnpm-workspace.yaml` (`onlyBuiltDependencies`), and wrangler needs both. Add others there deliberately.

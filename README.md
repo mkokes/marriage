@@ -50,6 +50,18 @@ pnpm typecheck   # type-check every package
 pnpm build       # production build of the web app
 ```
 
+### Deploying
+
+The whole app is one Cloudflare Worker: it serves the built web app and runs the game server at `/parties/*`, with one Durable Object per table. Deploying needs a Cloudflare account; the free Workers plan is enough for private games.
+
+```sh
+pnpm --filter @marriage/server exec wrangler login   # once, opens a browser
+pnpm run preview   # optional: the production build locally on http://localhost:8787
+pnpm run deploy    # builds the web app and deploys the Worker
+```
+
+Use `pnpm run deploy`, not `pnpm deploy`, which is a built-in pnpm command.
+
 A pre-push hook runs lint, format check, typecheck and tests. Work happens on branches and lands through pull requests.
 
 Project structure, conventions and gotchas are in [AGENTS.md](AGENTS.md); product scope and the full rules are in [docs/SPEC.md](docs/SPEC.md).

@@ -1,10 +1,19 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "marriage-server",
+  "name": "marriage",
   "main": "src/index.ts",
   "compatibility_date": "2026-10-01",
+  // One Worker serves the web app's static build and the game server at /parties/*.
+  // Build the web app first (`pnpm run deploy` at the repo root does both).
+  "assets": {
+    "directory": "../web/dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/parties/*"],
+  },
   "durable_objects": {
     "bindings": [{ "name": "Table", "class_name": "Table" }],
   },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Table"] }],
+  "observability": { "enabled": true },
 }

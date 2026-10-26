@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Nepali-inspired look: night indigo table, crimson and marigold accents, lokta-paper cards and a dhaka-weave band.
 - Bots: the host can seat bots between hands. They play from their own view of the table only (no peeking), take discards that complete sets, show and finish when they can, and move after a short pause.
 - Table chat with recent history, and quick emoji reactions that appear beside the sender's name.
+- Deployment as a single Cloudflare Worker that serves the web app and runs the game server (`pnpm run deploy`), plus `pnpm run preview` to run the production build locally.
 - Replays: watch any finished hand step by step with every card face up, from the results screen or the final totals.
 
 ### Changed
