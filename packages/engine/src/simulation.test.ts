@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { STANDARD_RULES } from './config';
 import { applyAction, dealHand, type HandState } from './game';
-import { randomInt } from './random';
+import { createRng, randomInt, type RngState } from './random';
+import { testKey } from './test/helpers';
 
 /** Plays random legal stock-draw/discard turns and checks invariants after every action. */
 function playRandomly(state: HandState, seed: number, maxTurns: number): HandState {
   let s = state;
-  let r = seed;
+  let r: RngState = createRng(testKey(seed + 1000));
   const total = cardCount(s);
   for (let turn = 0; turn < maxTurns && s.phase !== 'over'; turn++) {
     const playerId = s.players[s.turn]!.id;
@@ -16,7 +17,7 @@ function playRandomly(state: HandState, seed: number, maxTurns: number): HandSta
 
     const hand = s.players[s.turn]!.hand;
     const pick = randomInt(hand.length, r);
-    r = pick.seed;
+    r = pick.rng;
     result = applyAction(s, { type: 'discard', playerId, cardId: hand[pick.value]!.id });
     if (!result.ok) throw new Error(result.error);
     s = result.state;
@@ -42,7 +43,7 @@ describe('random play', () => {
       const state = dealHand({
         playerIds: Array.from({ length: players }, (_, i) => `p${i}`),
         rules: STANDARD_RULES,
-        seed,
+        seed: testKey(seed),
       });
       const end = playRandomly(state, seed, 1000);
       expect(end.result).toEqual({ kind: 'void' });
@@ -53,7 +54,7 @@ describe('random play', () => {
     const state = dealHand({
       playerIds: ['a', 'b', 'c'],
       rules: { ...STANDARD_RULES, stockExhausted: 'reshuffle' },
-      seed: 5,
+      seed: testKey(5),
     });
     const end = playRandomly(state, 5, 500);
     expect(end.phase).toBe('draw');

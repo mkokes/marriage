@@ -15,7 +15,8 @@ describe('viewFor', () => {
     expect(view.stockCount).toBe(state.stock.length);
     expect(JSON.stringify(view)).not.toContain(state.players[1]!.hand[0]!.id + '"');
     expect(view).not.toHaveProperty('stock');
-    expect(view).not.toHaveProperty('seed');
+    expect(view).not.toHaveProperty('rng');
+    expect(JSON.stringify(view)).not.toContain(state.rng.key);
   });
 
   it('reveals the tiplu only to players who have seen', () => {

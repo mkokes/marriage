@@ -22,11 +22,14 @@ export function card(code: string): Card {
 export const cards = (codes: string): Card[] => codes.split(/\s+/).filter(Boolean).map(card);
 export const ids = (codes: string): string[] => cards(codes).map((c) => c.id);
 
+/** A deterministic RNG key for tests. Real keys come from a CSPRNG. */
+export const testKey = (n: number): string => n.toString(16).padStart(64, '0');
+
 export function newHand(rules: Partial<RulesConfig> = {}, players = 3, seed = 1): HandState {
   return dealHand({
     playerIds: Array.from({ length: players }, (_, i) => `p${i}`),
     rules: { ...STANDARD_RULES, ...rules },
-    seed,
+    seed: testKey(seed),
   });
 }
 

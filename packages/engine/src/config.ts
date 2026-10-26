@@ -1,3 +1,5 @@
+import { isRecord } from './guards';
+
 /** Points per maal card held. A value of 0 means that card is not maal at this table. */
 export interface MaalValues {
   tiplu: number;
@@ -63,19 +65,63 @@ export type PresetName = keyof typeof PRESETS;
 export const MIN_PLAYERS = 2;
 export const MAX_PLAYERS = 5;
 
-/** Returns human-readable problems with a config; empty when valid. */
-export function validateRules(rules: RulesConfig): string[] {
+/** Upper bounds keep host-supplied values sane; real tables sit far below them. */
+const MAX_POINTS = 1000;
+const MAX_TIMER_SECONDS = 600;
+
+const ENUMS = {
+  seeRequirement: ['pureSequenceOrTunnela', 'pureSequenceOnly'],
+  discardPickup: ['completeSet', 'free', 'never'],
+  stockExhausted: ['void', 'reshuffle'],
+} as const;
+
+const BOOLEANS = ['printedJokers', 'dublees', 'jhipluPopluWild', 'kidnap', 'murder'] as const;
+
+/**
+ * Returns human-readable problems with a config; empty when valid. Checks every field
+ * at runtime, since rules arrive from the table host over the network.
+ */
+export function validateRules(rules: unknown): string[] {
+  if (!isRecord(rules)) return ['rules must be an object'];
+  const r = rules;
   const errors: string[] = [];
-  const amounts: Record<string, number> = {
-    ...rules.maal,
-    unseenPenalty: rules.unseenPenalty,
-    seenPenalty: rules.seenPenalty,
-    dubleeFinishBonus: rules.dubleeFinishBonus,
-    turnTimerSeconds: rules.turnTimerSeconds,
+
+  const amount = (name: string, value: unknown, max: number) => {
+    if (typeof value !== 'number' || !Number.isInteger(value) || value < 0 || value > max) {
+      errors.push(`${name} must be a whole number from 0 to ${max}`);
+    }
   };
-  for (const [name, value] of Object.entries(amounts)) {
-    if (!Number.isInteger(value) || value < 0) errors.push(`${name} must be a whole number ≥ 0`);
+
+  if (r.decks !== 3 && r.decks !== 4) errors.push('decks must be 3 or 4');
+  for (const name of BOOLEANS) {
+    if (typeof r[name] !== 'boolean') errors.push(`${name} must be true or false`);
   }
-  if (rules.kidnap && rules.murder) errors.push('kidnap and murder cannot both be on');
+  for (const [name, allowed] of Object.entries(ENUMS)) {
+    if (!(allowed as readonly unknown[]).includes(r[name])) {
+      errors.push(`${name} must be one of ${allowed.join(', ')}`);
+    }
+  }
+
+  const maal = r.maal;
+  if (!isRecord(maal)) {
+    errors.push('maal must be an object');
+  } else {
+    const keys: (keyof MaalValues)[] = [
+      'tiplu',
+      'jhiplu',
+      'poplu',
+      'alter',
+      'man',
+      'marriage',
+      'tunnela',
+    ];
+    for (const key of keys) amount(`maal.${key}`, maal[key], MAX_POINTS);
+  }
+  amount('unseenPenalty', r.unseenPenalty, MAX_POINTS);
+  amount('seenPenalty', r.seenPenalty, MAX_POINTS);
+  amount('dubleeFinishBonus', r.dubleeFinishBonus, MAX_POINTS);
+  amount('turnTimerSeconds', r.turnTimerSeconds, MAX_TIMER_SECONDS);
+
+  if (r.kidnap === true && r.murder === true) errors.push('kidnap and murder cannot both be on');
   return errors;
 }

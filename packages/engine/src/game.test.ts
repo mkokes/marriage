@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { applyAction, HAND_SIZE, type Action, type HandState } from './game';
+import { STANDARD_RULES } from './config';
+import { applyAction, dealHand, HAND_SIZE, type Action, type HandState } from './game';
 import { card, cards, ids, newHand, rig } from './test/helpers';
 
 function act(state: HandState, action: Action): HandState {
@@ -47,6 +48,8 @@ function lastStockCard(rules: Parameters<typeof newHand>[0]) {
   return act(drawn, { type: 'discard', playerId: 'p0', cardId: drawn.players[0]!.hand[0]!.id });
 }
 
+const dealTwo = (seed: string) => dealHand({ playerIds: ['a', 'b'], rules: STANDARD_RULES, seed });
+
 describe('dealHand', () => {
   it('deals 21 cards each, offers one card, and keeps every card exactly once', () => {
     const state = newHand({}, 4);
@@ -59,6 +62,11 @@ describe('dealHand', () => {
 
   it('is deterministic for a seed', () => {
     expect(newHand({}, 3, 9)).toEqual(newHand({}, 3, 9));
+  });
+
+  it('rejects a weak or malformed RNG key', () => {
+    expect(() => dealTwo('1234')).toThrow(/64 lowercase hex/);
+    expect(() => dealTwo('Z'.repeat(64))).toThrow(/64 lowercase hex/);
   });
 
   it('rejects bad player counts and invalid rules', () => {
@@ -88,6 +96,32 @@ describe('turns', () => {
     expect(next.discardPile.at(-1)!.id).toBe(discardFirst.cardId);
     expect(next.turn).toBe(1);
     expect(next.phase).toBe('draw');
+  });
+
+  it.each([
+    ['not an object', 'drawStock'],
+    ['unknown type', { type: 'cheat', playerId: 'p0' }],
+    ['missing playerId', { type: 'drawStock' }],
+    ['non-string card', { type: 'discard', playerId: 'p0', cardId: 7 }],
+    ['groups not arrays', { type: 'finish', playerId: 'p0', cardId: 'x', groups: 'all' }],
+    [
+      'too many groups',
+      {
+        type: 'finish',
+        playerId: 'p0',
+        cardId: 'x',
+        groups: Array.from({ length: 500 }, () => []),
+      },
+    ],
+    [
+      'fractional tiplu pick',
+      { type: 'discard', playerId: 'p0', cardId: 'x', show: { groups: [], tipluPick: 1.5 } },
+    ],
+  ])('returns an error, never throws, for a malformed action (%s)', (_, action) => {
+    expect(applyAction(newHand(), action)).toEqual({
+      ok: false,
+      error: 'Malformed action',
+    });
   });
 
   it('never mutates the input state', () => {

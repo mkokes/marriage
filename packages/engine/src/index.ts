@@ -1,6 +1,7 @@
 export * from './cards';
 export * from './config';
 export * from './game';
+export * from './guards';
 export * from './maal';
 export * from './random';
 export * from './scoring';

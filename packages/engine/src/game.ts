@@ -1,7 +1,8 @@
 import { buildShoe, type Card } from './cards';
 import { MAX_PLAYERS, MIN_PLAYERS, validateRules, type RulesConfig } from './config';
 import { wildsFor } from './maal';
-import { randomInt, shuffle } from './random';
+import { isRecord } from './guards';
+import { createRng, randomInt, shuffle, type RngState } from './random';
 import { settle, type Settlement } from './scoring';
 import { classifySet, isDublee, NO_WILDS, type SetKind } from './sets';
 
@@ -36,7 +37,8 @@ export interface HandState {
   phase: 'draw' | 'discard' | 'over';
   /** The card taken from the discard pile this turn; it can't be discarded straight back. */
   pickedFromDiscard: string | null;
-  seed: number;
+  /** Secret: decides every hidden card. Never send it to clients before the hand is over. */
+  rng: RngState;
   result: HandResult | null;
 }
 
@@ -62,6 +64,50 @@ export type Action =
 
 export type ActionResult = { ok: true; state: HandState } | { ok: false; error: string };
 
+// Bounds for client-supplied arrays; generous for real play, small enough to stay cheap.
+const MAX_ID_LENGTH = 64;
+const MAX_GROUPS = 22;
+
+const isId = (value: unknown): value is string =>
+  typeof value === 'string' && value.length > 0 && value.length <= MAX_ID_LENGTH;
+
+const isIdList = (value: unknown, max: number): value is string[] =>
+  Array.isArray(value) && value.length <= max && value.every(isId);
+
+const isGroups = (value: unknown): value is Groups =>
+  Array.isArray(value) &&
+  value.length <= MAX_GROUPS &&
+  value.every((group) => isIdList(group, MAX_GROUPS));
+
+/**
+ * Runtime check of an action's shape, for input that arrives over the network.
+ * applyAction calls it too, so malformed input yields `{ ok: false }`, never a throw.
+ */
+export function isAction(value: unknown): value is Action {
+  if (!isRecord(value)) return false;
+  const a = value;
+  if (!isId(a.playerId)) return false;
+  switch (a.type) {
+    case 'drawStock':
+      return true;
+    case 'drawDiscard':
+      return a.withCards === undefined || isIdList(a.withCards, 4);
+    case 'discard': {
+      if (!isId(a.cardId)) return false;
+      if (a.show === undefined) return true;
+      const show = a.show;
+      if (!isRecord(show)) return false;
+      return (
+        isGroups(show.groups) && (show.tipluPick === undefined || Number.isInteger(show.tipluPick))
+      );
+    }
+    case 'finish':
+      return isId(a.cardId) && isGroups(a.groups);
+    default:
+      return false;
+  }
+}
+
 class RuleError extends Error {}
 
 const fail = (message: string): never => {
@@ -71,7 +117,8 @@ const fail = (message: string): never => {
 export interface DealOptions {
   playerIds: string[];
   rules: RulesConfig;
-  seed: number;
+  /** 256-bit key as 64 hex chars, from a CSPRNG (e.g. crypto.getRandomValues). */
+  seed: string;
   /** Seat that takes the first turn. */
   firstPlayer?: number;
 }
@@ -84,7 +131,7 @@ export function dealHand({ playerIds, rules, seed, firstPlayer = 0 }: DealOption
   const problems = validateRules(rules);
   if (problems.length > 0) throw new RangeError(`Invalid rules: ${problems.join('; ')}`);
 
-  const shuffled = shuffle(buildShoe(rules.decks, rules.printedJokers), seed);
+  const shuffled = shuffle(buildShoe(rules.decks, rules.printedJokers), createRng(seed));
   const stock = shuffled.items;
   const players = playerIds.map((id) => ({
     id,
@@ -103,13 +150,17 @@ export function dealHand({ playerIds, rules, seed, firstPlayer = 0 }: DealOption
     turn: firstPlayer % playerIds.length,
     phase: 'draw',
     pickedFromDiscard: null,
-    seed: shuffled.seed,
+    rng: shuffled.rng,
     result: null,
   };
 }
 
-/** Applies an action, returning a new state. The input state is never mutated. */
-export function applyAction(state: HandState, action: Action): ActionResult {
+/**
+ * Applies an action, returning a new state; the input state is never mutated. Takes
+ * `unknown` because actions come from clients: malformed input is rejected, not thrown.
+ */
+export function applyAction(state: HandState, action: unknown): ActionResult {
+  if (!isAction(action)) return { ok: false, error: 'Malformed action' };
   try {
     const next = structuredClone(state);
     apply(next, action);
@@ -237,15 +288,15 @@ function see(state: HandState, player: PlayerHand, groups: Groups, tipluPick?: n
 function chooseTiplu(state: HandState, pick?: number): void {
   if (state.stock.length === 0) {
     // Only possible when the last stock card was just drawn; the hand ends at endTurn anyway.
-    const r = randomInt(state.discardPile.length, state.seed);
-    state.seed = r.seed;
+    const r = randomInt(state.discardPile.length, state.rng);
+    state.rng = r.rng;
     state.tiplu = state.discardPile[r.value]!;
     return;
   }
   let index = pick;
   if (index === undefined) {
-    const r = randomInt(state.stock.length, state.seed);
-    state.seed = r.seed;
+    const r = randomInt(state.stock.length, state.rng);
+    state.rng = r.rng;
     index = r.value;
   }
   if (!Number.isInteger(index) || index < 0 || index >= state.stock.length) {
@@ -286,9 +337,9 @@ function endTurn(state: HandState): void {
 
   if (state.rules.stockExhausted === 'reshuffle' && state.discardPile.length > 1) {
     const top = state.discardPile.pop()!;
-    const reshuffled = shuffle(state.discardPile, state.seed);
+    const reshuffled = shuffle(state.discardPile, state.rng);
     state.stock = reshuffled.items;
-    state.seed = reshuffled.seed;
+    state.rng = reshuffled.rng;
     state.discardPile = [top];
   } else {
     state.phase = 'over';
