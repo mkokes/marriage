@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Table setup step: "Start a table" now opens a page with your name and the rules, pre-filled with Standard. "Create table" claims a code and opens the lobby with you as host.
 - A "No table called …" page for codes nobody has created.
+- Continuous deployment: every push to `main` runs the checks, deploys the game server to Cloudflare, then publishes the web app, in that order.
 
 ### Changed
 

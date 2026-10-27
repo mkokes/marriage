@@ -52,17 +52,18 @@ pnpm build       # production build of the web app
 
 ### Deploying
 
-The app is deployed in two parts:
+Every push to `main` deploys automatically through the [Deploy workflow](.github/workflows/deploy.yml). It runs the checks, deploys the **game server**, then publishes the **web app**, so the server is always live before any web code that needs it.
 
-- **Web app:** [cards.martykokes.com](https://cards.martykokes.com), on GitHub Pages. The [Pages workflow](.github/workflows/pages.yml) runs the checks, builds it and publishes it on every push to `main`.
-- **Game server:** `cards-api.martykokes.com`, a Cloudflare Worker with one Durable Object per table. It accepts game connections only from the web app's origin (and `localhost`). Deploy it from your machine; the free Workers plan is enough for private games.
+- **Web app:** [cards.martykokes.com](https://cards.martykokes.com), on GitHub Pages.
+- **Game server:** `cards-api.martykokes.com`, a Cloudflare Worker with one Durable Object per table. It accepts game connections only from the web app's origin (and `localhost`). The free Workers plan is enough for private games.
 
-```sh
-pnpm --filter @marriage/server exec wrangler login   # once, opens a browser
-pnpm run deploy    # deploys the Worker (creates the custom domain's DNS on first deploy)
-```
+The workflow needs one repository secret, `CLOUDFLARE_API_TOKEN`:
 
-Use `pnpm run deploy`, not `pnpm deploy`, which is a built-in pnpm command. Deploy the Worker before (or with) any web change that relies on new server behavior.
+1. In the Cloudflare dashboard, go to **My Profile → API Tokens → Create Token** and pick the **Edit Cloudflare Workers** template.
+2. Under **Account Resources**, include only your account. Under **Zone Resources**, include only `martykokes.com`.
+3. Create the token, then save it in GitHub: `gh secret set CLOUDFLARE_API_TOKEN` (paste it when prompted, so it stays out of your shell history).
+
+To deploy the game server by hand instead, run `pnpm --filter @marriage/server exec wrangler login` once, then `pnpm run deploy`. Use `pnpm run deploy`, not `pnpm deploy`, which is a built-in pnpm command.
 
 `pnpm run preview` serves the production web build on `http://localhost:4173` against a local Worker.
 

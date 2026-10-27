@@ -1,6 +1,8 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "marriage",
+  // Not a secret; lets CI deploy with just an API token.
+  "account_id": "42aa5ba98429cf12464586ab58521440",
   "main": "src/index.ts",
   "compatibility_date": "2026-10-01",
   // The game server only. The web app is on GitHub Pages (cards.martykokes.com).
