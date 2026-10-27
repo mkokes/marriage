@@ -9,6 +9,7 @@ import { Lobby } from './Lobby';
 import { NewTable, NoTable } from './NewTable';
 import { pendingTables } from './pendingTables';
 import { Replay } from './Replay';
+import { ThemeSwitch } from './ThemeSwitch';
 import { FinalScores } from './Results';
 import { navigate, parseRoute, useSearch } from './router';
 import { useTable } from './useTable';
@@ -16,7 +17,10 @@ import { useTable } from './useTable';
 export function App() {
   return (
     <>
-      <LanguageSwitch />
+      <div className="top-controls">
+        <ThemeSwitch />
+        <LanguageSwitch />
+      </div>
       <Screen />
     </>
   );

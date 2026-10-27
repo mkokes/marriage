@@ -10,6 +10,7 @@ const signed = (x: number) => (x > 0 ? `+${n(x)}` : n(x));
  */
 export const en = {
   language: { name: 'English', switchLabel: 'Language' },
+  theme: { switchLabel: 'Theme', system: 'Match device', light: 'Light', dark: 'Dark' },
   format: { number: n, signed },
 
   common: {

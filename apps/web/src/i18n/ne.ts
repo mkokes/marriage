@@ -13,6 +13,7 @@ const signed = (x: number) => (x > 0 ? `+${n(x)}` : n(x));
  */
 export const ne: Messages = {
   language: { name: 'नेपाली', switchLabel: 'भाषा' },
+  theme: { switchLabel: 'रङ', system: 'यन्त्र अनुसार', light: 'उज्यालो', dark: 'अँध्यारो' },
   format: { number: n, signed },
 
   common: {

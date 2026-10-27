@@ -1,28 +1,84 @@
-/* Marriage: Tihar-night indigo table, crimson and marigold accents, lokta-paper cards,
-   and a dhaka-weave band as the one bold element. */
+/* Marriage: a Tihar night (indigo sky, diyo glow) or a lokta-paper day, with crimson and
+   marigold accents, lokta-paper cards, a dhaka-weave band and a marigold garland.
+
+   Brand colours are fixed; role tokens (--bg, --surface, --text, …) change per theme.
+   index.html and theme.tsx set data-theme on <html>; dark is the default. */
 :root {
-  --indigo: #141e46;
-  --indigo-raised: #1d2a5e;
-  --indigo-line: #2e3c78;
   --crimson: #c8102e;
+  --crimson-deep: #8a0b20;
   --marigold: #f2a007;
+  --saffron: #e8620c;
+  --leaf: #3f7d3a;
   --lokta: #f4ead5;
+  --lokta-edge: #cbbd9c;
   --ink: #1a1c38;
-  --text: #eef0fa;
-  --muted: #a3a9cb;
-  --positive: #8fd19e;
-  --negative: #ff8a8a;
+
+  /* The table is a night table in both themes, so cards always sit on indigo felt. */
+  --felt-1: #283880;
+  --felt-2: #141f52;
+
+  /* Fine paper grain, reused on the light page and on card faces. */
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.42 0 0 0 0 0.3 0 0 0 0 0.12 0.22 0 0 0 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 
   --card-w: clamp(44px, 12.4vw, 84px);
   --card-small: 26px;
   --radius: 8px;
 
-  color-scheme: dark;
   font-family: 'Mukta', system-ui, sans-serif;
   font-size: 17px;
   line-height: 1.5;
-  color: var(--text);
-  background: var(--indigo);
+}
+
+:root,
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #141e46;
+  --surface: #1d2a5e;
+  --line: #2e3c78;
+  --field: #0f1736;
+  --text: #eef0fa;
+  --muted: #a3a9cb;
+  --accent-text: var(--marigold);
+  --title: var(--marigold);
+  --title-glow: #f2a00766;
+  --positive: #8fd19e;
+  --negative: #ff8a8a;
+  --overlay: #0b1030cc;
+  --felt-rim: #f2a00738;
+  --raise: inset 0 1px 0 #ffffff0d, 0 4px 12px #00000038;
+  --shadow-pop: 0 10px 30px #0008;
+  /* Night sky: scattered stars, diyo glow from the bottom corners, a lighter zenith. */
+  --page:
+    radial-gradient(1.2px 1.2px at 24px 38px, #fff4d6aa, transparent) 0 0 / 210px 190px,
+    radial-gradient(1px 1px at 132px 92px, #fff4d688, transparent) 0 0 / 210px 190px,
+    radial-gradient(1.4px 1.4px at 78px 160px, #ffe1a066, transparent) 0 0 / 210px 190px,
+    radial-gradient(1px 1px at 180px 20px, #ffffff77, transparent) 0 0 / 210px 190px,
+    radial-gradient(55% 35% at 0% 100%, #f2a0072e, transparent 70%),
+    radial-gradient(55% 35% at 100% 100%, #c8102e2a, transparent 70%),
+    radial-gradient(120% 80% at 50% 0%, #1f2d66, transparent 70%), var(--bg);
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+  --bg: #f5ecd7;
+  --surface: #fffaf0;
+  --line: #e0cca2;
+  --field: #fffdf7;
+  --text: #141e46;
+  --muted: #5c6185;
+  --accent-text: #9a5a00;
+  --title: #b86e00;
+  --title-glow: #f2a00740;
+  --positive: #2f7d43;
+  --negative: #b3261e;
+  --overlay: #2b1d0a80;
+  --felt-rim: #7a3b12;
+  --raise: 0 1px 2px #6b4a1a1f, 0 4px 14px #6b4a1a14;
+  --shadow-pop: 0 10px 30px #6b4a1a40;
+  /* Daylight lokta paper: fibre grain, a marigold wash from above, a hint of sindoor below. */
+  --page:
+    var(--grain) 0 0 / 200px 200px, radial-gradient(120% 55% at 50% 0%, #f2a00724, transparent 70%),
+    radial-gradient(60% 40% at 100% 100%, #c8102e12, transparent 70%), var(--bg);
 }
 
 * {
@@ -32,8 +88,9 @@
 body {
   margin: 0;
   min-height: 100dvh;
-  background:
-    radial-gradient(120% 80% at 50% 0%, var(--indigo-raised), transparent 70%), var(--indigo);
+  color: var(--text);
+  background: var(--page);
+  background-attachment: fixed;
 }
 
 h1,
@@ -64,7 +121,7 @@ p {
 }
 
 :focus-visible {
-  outline: 3px solid var(--marigold);
+  outline: 3px solid var(--accent-text);
   outline-offset: 2px;
 }
 
@@ -78,6 +135,26 @@ p {
     linear-gradient(315deg, var(--ink) 33%, transparent 33%) 9px 0 / 18px 18px,
     repeating-linear-gradient(90deg, var(--lokta) 0 2px, var(--marigold) 2px 4px);
   border-bottom: 2px solid var(--ink);
+  position: relative;
+}
+
+/* A marigold garland (toran) strung under the band: marigold and saffron blossoms on
+   alternating heights, with a leaf between each pair. */
+.dhaka-band::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  height: 16px;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 50%, #9c4a06 0 1.5px, var(--marigold) 2px 5px, transparent 5.5px)
+      0 0 / 28px 14px repeat-x,
+    radial-gradient(circle at 50% 50%, #8a3a06 0 1.5px, var(--saffron) 2px 4.5px, transparent 5px)
+      14px 4px / 28px 14px repeat-x,
+    radial-gradient(4px 2px at 50% 50%, var(--leaf) 80%, transparent) 7px 3px / 14px 14px repeat-x;
+  filter: drop-shadow(0 2px 1px #0000004d);
 }
 
 /* Buttons and fields */
@@ -87,8 +164,8 @@ p {
   min-height: 44px;
   padding: 0.4rem 1rem;
   border-radius: var(--radius);
-  border: 1px solid var(--indigo-line);
-  background: var(--indigo-raised);
+  border: 1px solid var(--line);
+  background: var(--surface);
   color: var(--text);
   cursor: pointer;
   text-decoration: none;
@@ -102,17 +179,26 @@ p {
   cursor: not-allowed;
 }
 
+.button {
+  box-shadow: var(--raise);
+}
+
 .button--primary {
-  background: var(--marigold);
-  border-color: var(--marigold);
+  background: linear-gradient(180deg, #ffc94d, var(--marigold) 60%);
+  border-color: #c98400;
   color: var(--ink);
   font-weight: 700;
+  box-shadow:
+    inset 0 1px 0 #fff6,
+    0 2px 0 #a86600,
+    0 6px 16px #f2a00740;
 }
 
 .button--quiet {
   background: transparent;
   border-color: transparent;
   color: var(--muted);
+  box-shadow: none;
 }
 
 .button--large {
@@ -140,8 +226,8 @@ select {
   min-height: 44px;
   padding: 0.3rem 0.6rem;
   border-radius: var(--radius);
-  border: 1px solid var(--indigo-line);
-  background: #0f1736;
+  border: 1px solid var(--line);
+  background: var(--field);
   color: var(--text);
 }
 
@@ -149,7 +235,7 @@ select {
   font-size: 0.8rem;
   padding: 0 0.45rem;
   border-radius: 999px;
-  background: var(--indigo-line);
+  background: var(--line);
   color: var(--text);
 }
 
@@ -166,15 +252,22 @@ select {
   width: var(--card-w);
   aspect-ratio: 5 / 7;
   border-radius: calc(var(--card-w) * 0.09);
-  background: var(--lokta);
+  /* Printed paper: a sheen at the top left over a faint grain, with a thin inner frame. */
+  --card-frame:
+    inset 0 0 0 calc(var(--card-w) * 0.035) var(--lokta),
+    inset 0 0 0 calc(var(--card-w) * 0.035 + 1px) #cbbd9c99;
+  --card-lift: 0 1px 1px #0003, 0 3px 6px #00000026;
+  background:
+    radial-gradient(120% 90% at 25% 0%, #fffcf3, transparent 60%),
+    var(--grain) 0 0 / 120px 120px,
+    var(--lokta);
   color: var(--ink);
-  border: 1px solid #cbbd9c;
-  box-shadow: 0 1px 0 #0003;
+  border: 1px solid var(--lokta-edge);
+  box-shadow: var(--card-frame), var(--card-lift);
   font: inherit;
   padding: 0;
   text-align: left;
   user-select: none;
-  transition: transform 120ms ease-out;
 }
 
 button.card {
@@ -199,6 +292,10 @@ button.card {
   font-weight: 700;
   line-height: 0.95;
   font-size: calc(var(--card-w) * 0.3);
+}
+
+.card--small {
+  --card-frame: inset 0 0 0 0 transparent;
 }
 
 .card--small .card__corner {
@@ -240,25 +337,45 @@ button.card {
 .card--selected {
   transform: translateY(-12px);
   box-shadow:
+    var(--card-frame),
     0 0 0 3px var(--marigold),
-    0 6px 10px #0006;
+    0 0 18px 2px #f2a00780,
+    0 8px 14px #0006;
   z-index: 1;
 }
 
+@media (hover: hover) {
+  button.card:not(.card--selected):hover {
+    transform: translateY(-5px);
+  }
+}
+
 .card--back {
+  /* The dhaka weave inside a crimson frame, with a marigold medallion in the middle. */
   background:
+    radial-gradient(
+        circle,
+        var(--marigold) 0 16%,
+        var(--crimson-deep) 17% 21%,
+        var(--lokta) 22% 27%,
+        transparent 28%
+      )
+      center / 100% 100% no-repeat,
     linear-gradient(135deg, var(--crimson) 33%, transparent 33%) 0 0 / 10px 10px,
     linear-gradient(225deg, var(--crimson) 33%, transparent 33%) 0 0 / 10px 10px,
     linear-gradient(45deg, var(--ink) 33%, transparent 33%) 5px 0 / 10px 10px,
     linear-gradient(315deg, var(--ink) 33%, transparent 33%) 5px 0 / 10px 10px,
     var(--lokta);
   border: 3px solid var(--lokta);
-  outline: 1px solid #cbbd9c;
+  box-shadow:
+    inset 0 0 0 2px var(--crimson),
+    0 0 0 1px var(--lokta-edge),
+    var(--card-lift);
 }
 
 .card--empty {
   background: transparent;
-  border: 2px dashed var(--indigo-line);
+  border: 2px dashed var(--line);
   box-shadow: none;
 }
 
@@ -294,9 +411,26 @@ button.card {
   font-weight: 400;
   font-size: clamp(3.5rem, 18vw, 6.5rem);
   line-height: 0.95;
-  color: var(--marigold);
-  text-shadow: 3px 3px 0 var(--crimson);
+  color: var(--title);
+  text-shadow:
+    3px 3px 0 var(--crimson),
+    0 0 32px var(--title-glow);
   margin-bottom: 1.25rem;
+}
+
+/* A clay diyo above the title: flame, glow and bowl drawn with gradients. */
+.home__hero::before {
+  content: '';
+  display: block;
+  width: 56px;
+  height: 52px;
+  margin-bottom: 0.75rem;
+  background:
+    radial-gradient(6px 12px at 28px 16px, #fff6cf 0 30%, var(--marigold) 65%, transparent),
+    radial-gradient(26px 24px at 28px 18px, #f2a00759, transparent),
+    radial-gradient(4px 2px at 28px 34px, #3b1405, transparent),
+    radial-gradient(24px 12px at 28px 36px, #b4552a 0 60%, #7a3312 95%, transparent);
+  transform-origin: 50% 70%;
 }
 
 .home__lede {
@@ -309,7 +443,7 @@ button.card {
   display: grid;
   gap: 0.4rem;
   padding-top: 1.5rem;
-  border-top: 1px solid var(--indigo-line);
+  border-top: 1px solid var(--line);
 }
 
 /* Lobby */
@@ -322,7 +456,29 @@ button.card {
   font-family: 'Yatra One', serif;
   font-weight: 400;
   font-size: 2.2rem;
-  color: var(--marigold);
+  color: var(--title);
+}
+
+/* Under each page title, a thread with a crimson bead in the middle. */
+.lobby__title::after {
+  content: '';
+  display: block;
+  width: 6rem;
+  height: 10px;
+  margin-top: 0.3rem;
+  background:
+    radial-gradient(circle, var(--crimson) 0 3px, transparent 3.5px) center / 10px 10px no-repeat,
+    linear-gradient(var(--marigold), var(--marigold)) left center / calc(50% - 8px) 2px no-repeat,
+    linear-gradient(var(--marigold), var(--marigold)) right center / calc(50% - 8px) 2px no-repeat;
+}
+
+.lobby h2,
+.final h2,
+.setup h2 {
+  font-family: 'Yatra One', serif;
+  font-weight: 400;
+  font-size: 1.4rem;
+  color: var(--accent-text);
 }
 
 .lobby__link {
@@ -343,12 +499,13 @@ button.card {
   align-items: center;
   padding: 0.55rem 0.8rem;
   border-left: 4px solid var(--marigold);
-  background: var(--indigo-raised);
+  background: var(--surface);
   border-radius: 0 var(--radius) var(--radius) 0;
+  box-shadow: var(--raise);
 }
 
 .seat--away {
-  border-left-color: var(--indigo-line);
+  border-left-color: var(--line);
 }
 
 .seat__name {
@@ -373,7 +530,8 @@ button.card {
 }
 
 .rules fieldset {
-  border: 1px solid var(--indigo-line);
+  background: color-mix(in srgb, var(--surface) 55%, transparent);
+  border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 0.75rem 1rem 1rem;
   display: grid;
@@ -384,6 +542,7 @@ button.card {
 .rules legend {
   font-weight: 700;
   padding: 0 0.3rem;
+  color: var(--accent-text);
 }
 
 .field {
@@ -448,7 +607,7 @@ button.card {
 
 .game__table {
   font-family: 'Yatra One', serif;
-  color: var(--marigold);
+  color: var(--accent-text);
   font-size: 1.2rem;
 }
 
@@ -467,8 +626,8 @@ button.card {
   right: 0;
   top: 1.8rem;
   z-index: 5;
-  background: var(--indigo-raised);
-  border: 1px solid var(--indigo-line);
+  background: var(--surface);
+  border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 0.5rem 0.8rem;
   min-width: 14rem;
@@ -486,14 +645,36 @@ button.card {
 .opponent {
   padding: 0.45rem 0.7rem;
   border-radius: var(--radius);
-  background: var(--indigo-raised);
+  background: var(--surface);
   border-top: 3px solid transparent;
+  box-shadow: var(--raise);
   display: grid;
   gap: 0.15rem;
 }
 
 .opponent--turn {
   border-top-color: var(--marigold);
+  box-shadow:
+    0 0 0 1px #f2a00759,
+    0 4px 18px #f2a00733;
+}
+
+/* A lit diyo beside whoever's turn it is. */
+.opponent--turn .opponent__name::before {
+  content: '';
+  display: inline-block;
+  width: 0.55em;
+  height: 0.55em;
+  margin-right: 0.4em;
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  background: radial-gradient(
+    circle at 50% 65%,
+    #fff3c4 0 25%,
+    var(--marigold) 60%,
+    var(--saffron)
+  );
+  box-shadow: 0 0 8px 2px #f2a00799;
+  vertical-align: 0.05em;
 }
 
 .opponent--away {
@@ -520,9 +701,22 @@ button.card {
 
 .felt {
   padding: 1rem;
-  border-radius: 14px;
-  background: radial-gradient(90% 120% at 50% 40%, #233373, #17225a);
-  box-shadow: inset 0 0 0 1px var(--indigo-line);
+  border-radius: 18px;
+  --text: #eef0fa;
+  --muted: #b7bddc;
+  --line: #3a4a8c;
+  --accent-text: var(--marigold);
+  color: var(--text);
+  background:
+    radial-gradient(55% 45% at 50% 30%, #f2a00724, transparent 70%),
+    repeating-linear-gradient(45deg, #ffffff07 0 2px, transparent 2px 5px),
+    repeating-linear-gradient(-45deg, #00000014 0 2px, transparent 2px 5px),
+    radial-gradient(90% 120% at 50% 40%, var(--felt-1), var(--felt-2));
+  border: 3px solid var(--felt-rim);
+  box-shadow:
+    inset 0 0 0 1px #ffffff12,
+    inset 0 0 48px #00000080,
+    var(--raise);
   display: grid;
   gap: 0.75rem;
   justify-items: center;
@@ -548,7 +742,10 @@ button.card {
 }
 
 .pile:not(:disabled) .card {
-  box-shadow: 0 0 0 3px var(--marigold);
+  box-shadow:
+    var(--card-frame),
+    0 0 0 3px var(--marigold),
+    0 0 16px 2px #f2a00766;
 }
 
 .pile__count {
@@ -560,7 +757,7 @@ button.card {
   padding: 0 0.4rem;
   border-radius: 999px;
   background: var(--ink);
-  color: var(--text);
+  color: var(--lokta);
 }
 
 .tiplu {
@@ -568,7 +765,7 @@ button.card {
   justify-items: center;
   gap: 0.15rem;
   font-size: 0.8rem;
-  color: var(--marigold);
+  color: var(--accent-text);
 }
 
 .tiplu .card {
@@ -585,7 +782,7 @@ button.card {
 }
 
 .prompt--yours {
-  color: var(--marigold);
+  color: var(--accent-text);
   font-weight: 700;
 }
 
@@ -639,13 +836,17 @@ button.card {
 }
 
 .group__cards > .card {
-  box-shadow: -2px 0 3px #0003;
+  box-shadow:
+    var(--card-frame),
+    -2px 0 4px #00000038;
 }
 
 .group__cards > .card--selected {
   box-shadow:
+    var(--card-frame),
     0 0 0 3px var(--marigold),
-    0 6px 10px #0006;
+    0 0 18px 2px #f2a00780,
+    0 8px 14px #0006;
 }
 
 .group__label {
@@ -664,9 +865,9 @@ button.card {
   min-height: 32px;
   padding: 0 0.6rem;
   border-radius: 999px;
-  border: 1px dashed var(--marigold);
+  border: 1px dashed var(--accent-text);
   background: transparent;
-  color: var(--marigold);
+  color: var(--accent-text);
   cursor: pointer;
 }
 
@@ -675,9 +876,9 @@ button.card {
   width: var(--card-w);
   aspect-ratio: 5 / 7;
   border-radius: calc(var(--card-w) * 0.09);
-  border: 2px dashed var(--marigold);
+  border: 2px dashed var(--accent-text);
   background: transparent;
-  color: var(--marigold);
+  color: var(--accent-text);
   font-size: 0.75rem;
   cursor: pointer;
 }
@@ -693,7 +894,7 @@ button.card {
   position: fixed;
   inset: 0;
   z-index: 10;
-  background: #0b1030cc;
+  background: var(--overlay);
   overflow-y: auto;
   padding: 24px 16px;
 }
@@ -703,8 +904,9 @@ button.card {
   margin: 0 auto;
   padding: 1.25rem;
   border-radius: 14px;
-  background: var(--indigo-raised);
+  background: var(--surface);
   border-top: 6px solid var(--marigold);
+  box-shadow: var(--shadow-pop);
   display: grid;
   gap: 1rem;
 }
@@ -719,7 +921,7 @@ button.card {
   font-family: 'Yatra One', serif;
   font-weight: 400;
   font-size: 1.8rem;
-  color: var(--marigold);
+  color: var(--accent-text);
 }
 
 .results__tiplu {
@@ -767,7 +969,7 @@ button.card {
 .scores th,
 .scores td {
   padding: 0.3rem 0;
-  border-bottom: 1px solid var(--indigo-line);
+  border-bottom: 1px solid var(--line);
 }
 
 .scores th {
@@ -824,12 +1026,6 @@ button.card {
   color: #fff;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .card {
-    transition: none;
-  }
-}
-
 .final {
   display: grid;
   gap: 1.5rem;
@@ -843,6 +1039,7 @@ button.card {
 
 /* Chat */
 .chat-toggle {
+  box-shadow: var(--shadow-pop);
   position: fixed;
   right: 16px;
   bottom: 16px;
@@ -853,8 +1050,8 @@ button.card {
   padding: 0 1rem;
   border-radius: 999px;
   border: 2px solid var(--marigold);
-  background: var(--indigo-raised);
-  color: var(--marigold);
+  background: var(--surface);
+  color: var(--accent-text);
   cursor: pointer;
   display: inline-flex;
   gap: 0.4rem;
@@ -882,9 +1079,9 @@ button.card {
   gap: 0.6rem;
   padding: 0.8rem 1rem 1rem;
   border-radius: 14px;
-  background: var(--indigo-raised);
+  background: var(--surface);
   border-top: 4px solid var(--marigold);
-  box-shadow: 0 10px 30px #0008;
+  box-shadow: var(--shadow-pop);
 }
 
 .chat__header {
@@ -909,7 +1106,7 @@ button.card {
 }
 
 .chat__list strong {
-  color: var(--marigold);
+  color: var(--accent-text);
   margin-right: 0.3rem;
 }
 
@@ -924,8 +1121,8 @@ button.card {
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  border: 1px solid var(--indigo-line);
-  background: #0f1736;
+  border: 1px solid var(--line);
+  background: var(--field);
   cursor: pointer;
 }
 
@@ -934,13 +1131,6 @@ button.card {
   display: inline-block;
   margin-left: 0.35rem;
   font-size: 1.25rem;
-  animation: reaction-pop 300ms ease-out;
-}
-
-@keyframes reaction-pop {
-  from {
-    transform: scale(0.3);
-  }
 }
 
 .seat__remove {
@@ -954,8 +1144,9 @@ button.card {
   margin: 0 auto;
   padding: 1.25rem;
   border-radius: 14px;
-  background: var(--indigo-raised);
+  background: var(--surface);
   border-top: 6px solid var(--marigold);
+  box-shadow: var(--shadow-pop);
   display: grid;
   gap: 1rem;
 }
@@ -976,7 +1167,7 @@ button.card {
   font-family: 'Yatra One', serif;
   font-weight: 400;
   font-size: 1.6rem;
-  color: var(--marigold);
+  color: var(--accent-text);
 }
 
 .replay__caption {
@@ -995,7 +1186,7 @@ button.card {
   display: inline-flex;
   gap: 0.4rem;
   align-items: center;
-  color: var(--marigold);
+  color: var(--accent-text);
 }
 
 .replay__seat {
@@ -1038,17 +1229,11 @@ button.card {
   gap: 1rem;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid var(--indigo-line);
+  border-bottom: 1px solid var(--line);
 }
 
 .final__hands {
   justify-self: stretch;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .reaction {
-    animation: none;
-  }
 }
 
 /* Leave room under scrolling content for the floating chat button. */
@@ -1103,7 +1288,7 @@ button.card {
 }
 
 .code {
-  color: var(--marigold);
+  color: var(--accent-text);
   letter-spacing: 0.15em;
 }
 
@@ -1132,23 +1317,30 @@ button.card {
   justify-content: space-between;
   align-items: center;
   gap: 0.5rem;
-  border-bottom: 1px solid var(--indigo-line);
+  border-bottom: 1px solid var(--line);
 }
 
 /* Language switch, pinned just under the dhaka band on every screen. */
-.lang-switch {
+/* Theme and language switches, together in the top corner of every screen. */
+.top-controls {
   position: fixed;
   top: 24px;
   right: 16px;
   z-index: 25;
   display: flex;
-  border: 1px solid var(--indigo-line);
+  gap: 0.4rem;
+}
+
+.pill-switch {
+  display: flex;
+  border: 1px solid var(--line);
   border-radius: 999px;
-  background: var(--indigo-raised);
+  background: var(--surface);
+  box-shadow: var(--raise);
   overflow: hidden;
 }
 
-.lang-switch button {
+.pill-switch button {
   font: inherit;
   font-size: 0.85rem;
   min-height: 32px;
@@ -1159,16 +1351,52 @@ button.card {
   cursor: pointer;
 }
 
-.lang-switch button[aria-pressed='true'] {
+.theme-switch button {
+  padding: 0 0.5rem;
+  min-width: 30px;
+  font-size: 0.95rem;
+}
+
+.pill-switch button[aria-pressed='true'] {
   background: var(--marigold);
   color: var(--ink);
   font-weight: 700;
 }
 
-/* Keep the top line of each screen clear of the switch. */
+/* Keep the top line of each screen clear of the switches. */
 .game__bar,
 .lobby__title {
-  padding-right: 8.5rem;
+  padding-right: 13rem;
+}
+
+/* The single theme button stands in for the three-way switch on phones. */
+.theme-cycle {
+  display: none;
+  font: inherit;
+  font-size: 0.95rem;
+  width: 34px;
+  min-height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: var(--raise);
+  color: var(--accent-text);
+  cursor: pointer;
+}
+
+@media (max-width: 30rem) {
+  .theme-switch {
+    display: none;
+  }
+
+  .theme-cycle {
+    display: inline-block;
+  }
+
+  .game__bar,
+  .lobby__title {
+    padding-right: 9.75rem;
+  }
 }
 
 /* Short labels never break mid-phrase (Nepali labels run a little longer). */
@@ -1181,4 +1409,199 @@ button.card {
 .game__bar {
   flex-wrap: wrap;
   row-gap: 0.25rem;
+}
+
+/* Motion. Everything here opts in, so players who ask for reduced motion get none of it. */
+@media (prefers-reduced-motion: no-preference) {
+  body {
+    transition:
+      background-color 250ms ease,
+      color 250ms ease;
+  }
+
+  .card {
+    transition:
+      transform 160ms cubic-bezier(0.2, 0.8, 0.2, 1),
+      box-shadow 160ms ease;
+  }
+
+  .button {
+    transition:
+      transform 90ms ease-out,
+      filter 120ms ease;
+  }
+
+  .button:not(:disabled):active {
+    transform: scale(0.96);
+  }
+
+  .button:not(:disabled):hover {
+    filter: brightness(1.06);
+  }
+
+  /* Screens and panels rise into place when they open. */
+  .home,
+  .lobby,
+  .setup,
+  .final,
+  .game,
+  .results,
+  .replay {
+    animation: rise-in 320ms ease-out backwards;
+  }
+
+  /* Cards are dealt in: group by group (--g), then card by card within it (--c). */
+  .hand .card {
+    animation: deal 380ms cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+    animation-delay: calc(var(--g, 0) * 70ms + var(--c, 0) * 28ms);
+  }
+
+  .hand > .group:nth-child(2) {
+    --g: 1;
+  }
+
+  .hand > .group:nth-child(3) {
+    --g: 2;
+  }
+
+  .hand > .group:nth-child(4) {
+    --g: 3;
+  }
+
+  .hand > .group:nth-child(5) {
+    --g: 4;
+  }
+
+  .hand > .group:nth-child(6) {
+    --g: 5;
+  }
+
+  .hand > .group:nth-child(7) {
+    --g: 6;
+  }
+
+  .hand > .group:nth-child(8) {
+    --g: 7;
+  }
+
+  .hand > .group:nth-child(9) {
+    --g: 8;
+  }
+
+  .hand > .group:nth-child(10) {
+    --g: 9;
+  }
+
+  .group__cards > .card:nth-child(2) {
+    --c: 1;
+  }
+
+  .group__cards > .card:nth-child(3) {
+    --c: 2;
+  }
+
+  .group__cards > .card:nth-child(4) {
+    --c: 3;
+  }
+
+  .group__cards > .card:nth-child(5) {
+    --c: 4;
+  }
+
+  .group__cards > .card:nth-child(6) {
+    --c: 5;
+  }
+
+  .group__cards > .card:nth-child(7) {
+    --c: 6;
+  }
+
+  .group__cards > .card:nth-child(8) {
+    --c: 7;
+  }
+
+  .group__cards > .card:nth-child(9) {
+    --c: 8;
+  }
+
+  .group__cards > .card:nth-child(10) {
+    --c: 9;
+  }
+
+  .group__cards > .card:nth-child(11) {
+    --c: 10;
+  }
+
+  .group__cards > .card:nth-child(12) {
+    --c: 11;
+  }
+
+  /* Each new discard lands on the pile (the card is keyed by id, so it remounts). */
+  .pile--discard .card:not(.card--empty) {
+    animation: land 300ms ease-out;
+  }
+
+  .opponent--turn .opponent__name::before,
+  .home__hero::before {
+    animation: flicker 2.4s ease-in-out infinite;
+  }
+
+  .prompt--yours {
+    animation: glow 1.8s ease-in-out infinite alternate;
+  }
+
+  .reaction {
+    animation: reaction-pop 300ms ease-out;
+  }
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@keyframes deal {
+  from {
+    opacity: 0;
+    transform: translateY(-28px) rotate(-6deg);
+  }
+}
+
+@keyframes land {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) rotate(8deg) scale(1.06);
+  }
+}
+
+@keyframes flicker {
+  0%,
+  100% {
+    transform: scale(1, 1);
+    filter: brightness(1);
+  }
+
+  30% {
+    transform: scale(0.97, 1.04);
+    filter: brightness(1.12);
+  }
+
+  60% {
+    transform: scale(1.02, 0.97);
+    filter: brightness(0.94);
+  }
+}
+
+@keyframes glow {
+  to {
+    text-shadow: 0 0 14px #f2a00799;
+  }
+}
+
+@keyframes reaction-pop {
+  from {
+    transform: scale(0.3);
+  }
 }
