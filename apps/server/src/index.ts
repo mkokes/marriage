@@ -2,6 +2,7 @@ import { isRecord } from '@marriage/engine';
 import {
   isClientMessage,
   MAX_MESSAGE_BYTES,
+  TABLE_CODE_PATTERN,
   TOKEN_PATTERN,
   type ReplayRecord,
   type ServerMessage,
@@ -168,8 +169,16 @@ export class Table extends Server<Env> {
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    if (!isAllowedOrigin(request.headers.get('Origin'), env.ALLOWED_ORIGINS)) {
+    const origin = request.headers.get('Origin');
+    if (!isAllowedOrigin(origin, env.ALLOWED_ORIGINS, request.url)) {
       return new Response('Forbidden origin', { status: 403 });
+    }
+    // Only well-formed table codes get a Durable Object. Split the path exactly as
+    // routePartykitRequest does (empty segments dropped), so `/parties/table//x`
+    // is checked as room `x`.
+    const parts = new URL(request.url).pathname.split('/').filter(Boolean);
+    if (parts[0] === 'parties' && !TABLE_CODE_PATTERN.test(parts[2] ?? '')) {
+      return new Response('Unknown table', { status: 404 });
     }
     return (
       (await routePartykitRequest(request, env)) ??

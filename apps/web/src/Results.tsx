@@ -121,7 +121,7 @@ export function FinalScores({ table, send }: Props) {
           </ol>
         </section>
       )}
-      <a className="button button--primary" href={window.location.pathname}>
+      <a className="button button--primary" href="?new">
         Start a new table
       </a>
     </main>

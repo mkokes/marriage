@@ -83,7 +83,7 @@ export type Outcome =
 
 export function newTable(): TableState {
   return {
-    status: 'lobby',
+    status: 'new',
     hostId: null,
     seats: [],
     rules: structuredClone(STANDARD_RULES),
@@ -116,8 +116,26 @@ export function handleMessage(
   const seat = seatOf(next, credential);
   const isHost = seat !== undefined && seat.playerId === next.hostId;
   if (next.status === 'ended') return fail('The session has ended');
+  if (next.status === 'new' && message.type !== 'createTable') {
+    return fail('There is no table with this code');
+  }
 
   switch (message.type) {
+    case 'createTable': {
+      if (next.status !== 'new') return fail('That table code is already taken');
+      if (!isRulesConfig(message.rules)) {
+        return fail(`Invalid rules: ${validateRules(message.rules).join('; ')}`);
+      }
+      const name = message.name.trim();
+      const playerId = deps.newId();
+      next.rules = structuredClone(message.rules);
+      next.seats = [{ playerId, name, credential, isBot: false }];
+      next.hostId = playerId;
+      next.scores[playerId] = 0;
+      next.names[playerId] = name;
+      next.status = 'lobby';
+      return { ok: true, table: next };
+    }
     case 'sit': {
       const name = message.name.trim();
       if (seat) {

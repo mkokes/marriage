@@ -1057,3 +1057,52 @@ button.card {
 .overlay {
   padding-bottom: 88px;
 }
+
+/* Table setup */
+.setup {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 0 16px 48px;
+  display: grid;
+  gap: 1.5rem;
+}
+
+.setup .dhaka-band {
+  margin: 0 -16px;
+}
+
+.setup .rules > .field {
+  margin-bottom: 0.5rem;
+}
+
+.setup > .button--quiet {
+  justify-self: start;
+}
+
+/* Four-letter table codes read like a Jackbox room code. */
+.code-input {
+  text-transform: uppercase;
+  letter-spacing: 0.3em;
+  font-weight: 700;
+  font-size: 1.3rem;
+}
+
+.code-input::placeholder {
+  letter-spacing: 0.3em;
+  font-weight: 400;
+}
+
+.field-problem {
+  margin: 0;
+  color: var(--negative);
+}
+
+.lobby__title,
+.game__table {
+  letter-spacing: 0.04em;
+}
+
+.code {
+  color: var(--marigold);
+  letter-spacing: 0.15em;
+}

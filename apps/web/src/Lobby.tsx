@@ -36,7 +36,10 @@ export function Lobby({ room, table, send, reactions }: Props) {
       <div className="dhaka-band" aria-hidden="true" />
       <header className="lobby__header">
         <h1 className="lobby__title">Table {room}</h1>
-        <p className="muted">Send this link to the people you're playing with.</p>
+        <p className="muted">
+          Tell the people you're playing with the code <strong className="code">{room}</strong>, or
+          send them this link.
+        </p>
         <div className="field-row">
           <input
             className="lobby__link"

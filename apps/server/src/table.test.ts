@@ -1,4 +1,11 @@
-import { applyAction, dealHand, type Card, type Rank, type Suit } from '@marriage/engine';
+import {
+  applyAction,
+  dealHand,
+  STANDARD_RULES,
+  type Card,
+  type Rank,
+  type Suit,
+} from '@marriage/engine';
 import type { ClientMessage } from '@marriage/protocol';
 import { describe, expect, it } from 'vitest';
 import {
@@ -44,8 +51,15 @@ function err(outcome: Outcome): string {
 
 /** A table with `n` seated players (credentials c1..cn); c1 is the host. */
 function seated(n: number, deps = fakeDeps()) {
-  let table = newTable();
-  for (let i = 1; i <= n; i++) {
+  let table = ok(
+    handleMessage(
+      newTable(),
+      'c1',
+      { type: 'createTable', name: 'Player 1', rules: STANDARD_RULES },
+      deps,
+    ),
+  );
+  for (let i = 2; i <= n; i++) {
     table = ok(handleMessage(table, `c${i}`, { type: 'sit', name: `Player ${i}` }, deps));
   }
   return { table, deps };
@@ -58,6 +72,38 @@ function started(n = 3) {
 
 const send = (table: TableState, credential: string, message: ClientMessage, deps: TableDeps) =>
   handleMessage(table, credential, message, deps);
+
+describe('creating a table', () => {
+  it('starts unclaimed and accepts nothing but createTable', () => {
+    const deps = fakeDeps();
+    const fresh = newTable();
+    expect(fresh.status).toBe('new');
+    expect(err(send(fresh, 'c1', { type: 'sit', name: 'Asha' }, deps))).toMatch(
+      /no table with this code/,
+    );
+  });
+
+  it('seats the creator as host with their chosen rules', () => {
+    const deps = fakeDeps();
+    const rules = { ...STANDARD_RULES, kidnap: true, turnTimerSeconds: 30 };
+    const table = ok(send(newTable(), 'c1', { type: 'createTable', name: ' Asha ', rules }, deps));
+    expect(table.status).toBe('lobby');
+    expect(table.rules).toEqual(rules);
+    expect(table.seats).toEqual([
+      { playerId: 'player-1', name: 'Asha', credential: 'c1', isBot: false },
+    ]);
+    expect(table.hostId).toBe('player-1');
+  });
+
+  it('rejects bad rules and codes that are already taken', () => {
+    const deps = fakeDeps();
+    const bad = { type: 'createTable', name: 'Asha', rules: { decks: 9 } } as const;
+    expect(err(send(newTable(), 'c1', bad, deps))).toMatch(/Invalid rules/);
+    const { table } = seated(1, deps);
+    const again = { type: 'createTable', name: 'Bikash', rules: STANDARD_RULES } as const;
+    expect(err(send(table, 'c2', again, deps))).toMatch(/already taken/);
+  });
+});
 
 describe('seats', () => {
   it('seats players, makes the first one host, and starts their score at 0', () => {

@@ -4,7 +4,7 @@ A mobile-first, web-based multiplayer version of the Nepali rummy-style card gam
 
 ## Product scope (v1)
 
-- **Audience:** private tables, joined via shareable link / short room code. No accounts — display name + a device-local player token (localStorage) for seat reclaim.
+- **Audience:** private tables, joined via shareable link or a four-letter room code (capital consonants, like a Jackbox code). No accounts — display name + a device-local player token (localStorage) for seat reclaim.
 - **Players:** 2–5 per table. Host creates table, picks preset/tweaks rules, starts hands.
 - **Bots:** simple bots can fill empty seats (also used for automated testing).
 - **Connectivity:** reconnect to same seat; configurable turn timer (default 60s). On timeout: auto-draw from stock, auto-discard the drawn card.
@@ -92,7 +92,8 @@ Presets: `Standard` (above) plus room for named house presets later. All options
 
 ## UX
 
-- Lobby: create table (name, rules preset/overrides), share link/QR, seat list, add bot, spectator join.
+- Start a table: a setup page with your name and the rules (Standard pre-selected, every option editable), then "Create table", which claims a fresh code and opens the lobby with you as host.
+- Lobby: the table code and invite link to share, seat list, add bot, host can still adjust rules before dealing, spectator join.
 - Table (phone portrait first, landscape supported): opponents around top, stock/discard center, hand at bottom as overlapping fans per group with **auto-sort (suit/rank) + tap to select, tap a group to move** (touch-friendly; drag-and-drop may follow); valid groups highlighted; "Show" and "Game" actions enabled only when the engine says they're valid. Maal/tiplu indicator once seen.
 - End-of-hand: reveal all hands, maal breakdown, settlement table, "next hand" (host). Replay viewer for finished hands.
 - Chat drawer + emoji reactions overlay.
