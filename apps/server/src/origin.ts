@@ -8,10 +8,10 @@
 export function isAllowedOrigin(
   origin: string | null,
   allowed: string,
-  requestHost: string,
+  requestUrl: string,
 ): boolean {
   if (origin === null) return true;
-  if (URL.canParse(origin) && new URL(origin).host === requestHost) return true;
+  if (URL.canParse(origin) && new URL(origin).origin === new URL(requestUrl).origin) return true;
   if (/^http:\/\/localhost(:\d+)?$/.test(origin)) return true;
   return allowed.split(',').some((o) => o.trim() === origin);
 }

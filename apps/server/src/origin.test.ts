@@ -15,10 +15,13 @@ describe('isAllowedOrigin', () => {
     ['https://cards.martykokes.com.evil.example', false],
     ['http://localhost.evil.example', false],
     ['https://localhost:5173', false],
-    ['http://cards-api.martykokes.com', true], // same origin as the server
+    ['https://cards-api.martykokes.com', true], // same origin as the server
+    ['http://cards-api.martykokes.com', false], // same host, different scheme
     ['https://cards-api.martykokes.com.evil.example', false],
     ['not a url', false],
   ])('%s → %s', (origin, expected) => {
-    expect(isAllowedOrigin(origin, ALLOWED, 'cards-api.martykokes.com')).toBe(expected);
+    expect(
+      isAllowedOrigin(origin, ALLOWED, 'https://cards-api.martykokes.com/parties/table/QXRT'),
+    ).toBe(expected);
   });
 });

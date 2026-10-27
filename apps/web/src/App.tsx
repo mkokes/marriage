@@ -31,22 +31,31 @@ function TableScreen({ room }: { room: string }) {
   const { table, error, connected, send, dismissError, reactions, replay, closeReplay } =
     useTable(room);
   const pending = pendingTables.get(room);
-  const claimed = useRef(false);
+  // Whether this screen has asked to create the table at all, and whether it has asked
+  // on the current connection (a dropped connection may have lost the request).
+  const askedEver = useRef(false);
+  const askedOnConnection = useRef(false);
 
-  // Creating a table: claim the code once connected. If the code turns out to be
-  // taken by someone else's table, try a fresh one.
+  useEffect(() => {
+    if (!connected) askedOnConnection.current = false;
+  }, [connected]);
+
+  // Creating a table: claim the code once connected. The claim succeeded only if we
+  // asked and are now its host; any other existing table (someone else's, or one this
+  // device made earlier) means the code is taken, so try a fresh one.
   useEffect(() => {
     if (!table || !pending) return;
     if (table.status === 'new') {
-      if (!claimed.current) send({ type: 'createTable', ...pending });
-      claimed.current = true;
-    } else if (!table.you.isHost) {
+      if (!askedOnConnection.current) send({ type: 'createTable', ...pending });
+      askedOnConnection.current = true;
+      askedEver.current = true;
+    } else if (askedEver.current && table.you.isHost) {
+      pendingTables.delete(room);
+    } else {
       pendingTables.delete(room);
       const code = newTableCode(randomBytes);
       pendingTables.set(code, pending);
       navigate(`?table=${code}`, { replace: true });
-    } else {
-      pendingTables.delete(room);
     }
   }, [table, pending, room, send]);
 
