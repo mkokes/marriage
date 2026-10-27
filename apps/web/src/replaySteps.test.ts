@@ -1,6 +1,8 @@
 import { applyAction, chooseBotAction, dealHand, STANDARD_RULES, viewFor } from '@marriage/engine';
 import type { ReplayRecord } from '@marriage/protocol';
 import { describe, expect, it } from 'vitest';
+import { en } from './i18n/en';
+import { ne } from './i18n/ne';
 import { buildReplay } from './replaySteps';
 
 /** Plays a bot hand and records it the way the server does. */
@@ -25,7 +27,7 @@ function recordedHand(): { record: ReplayRecord; final: ReturnType<typeof dealHa
 describe('buildReplay', () => {
   it('rebuilds every step and ends on the real final state', () => {
     const { record, final } = recordedHand();
-    const steps = buildReplay(record, { a: 'Asha', b: 'Bikash', c: 'Chandra' });
+    const steps = buildReplay(record, { a: 'Asha', b: 'Bikash', c: 'Chandra' }, en);
     expect(steps).toHaveLength(record.actions.length + 1);
     expect(steps.at(-1)!.state).toEqual(final);
     expect(steps[0]!.caption).toBe('Cards dealt. Bikash goes first.');
@@ -33,5 +35,12 @@ describe('buildReplay', () => {
       /^Bikash (drew from the stock|took the .+ from the discard pile)\.$/,
     );
     expect(steps.at(-1)!.caption).toMatch(/finished\.$/);
+  });
+
+  it('captions in Nepali too', () => {
+    const { record } = recordedHand();
+    const steps = buildReplay(record, { a: 'आशा', b: 'विकास', c: 'चन्द्र' }, ne);
+    expect(steps[0]!.caption).toBe('पत्ती बाँडियो। विकासले पहिला खेल्नुहुन्छ।');
+    expect(steps.at(-1)!.caption).toMatch(/खेल सक्नुभयो।$/);
   });
 });

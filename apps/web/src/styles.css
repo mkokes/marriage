@@ -1134,3 +1134,51 @@ button.card {
   gap: 0.5rem;
   border-bottom: 1px solid var(--indigo-line);
 }
+
+/* Language switch, pinned just under the dhaka band on every screen. */
+.lang-switch {
+  position: fixed;
+  top: 24px;
+  right: 16px;
+  z-index: 25;
+  display: flex;
+  border: 1px solid var(--indigo-line);
+  border-radius: 999px;
+  background: var(--indigo-raised);
+  overflow: hidden;
+}
+
+.lang-switch button {
+  font: inherit;
+  font-size: 0.85rem;
+  min-height: 32px;
+  padding: 0 0.7rem;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.lang-switch button[aria-pressed='true'] {
+  background: var(--marigold);
+  color: var(--ink);
+  font-weight: 700;
+}
+
+/* Keep the top line of each screen clear of the switch. */
+.game__bar,
+.lobby__title {
+  padding-right: 8.5rem;
+}
+
+/* Short labels never break mid-phrase (Nepali labels run a little longer). */
+.game__bar > *,
+.prompt__timer,
+.tag {
+  white-space: nowrap;
+}
+
+.game__bar {
+  flex-wrap: wrap;
+  row-gap: 0.25rem;
+}

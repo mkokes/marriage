@@ -3,6 +3,8 @@ import {
   isClientMessage,
   MAX_MESSAGE_BYTES,
   TABLE_CODE_PATTERN,
+  TABLE_ERRORS,
+  type TableErrorCode,
   TOKEN_PATTERN,
   type ReplayRecord,
   type ServerMessage,
@@ -56,6 +58,9 @@ const credentialOf = (connection: Connection): string | null => {
 const send = (connection: Connection, message: ServerMessage) =>
   connection.send(JSON.stringify(message));
 
+const sendError = (connection: Connection, code: TableErrorCode) =>
+  send(connection, { type: 'error', code, message: TABLE_ERRORS[code] });
+
 /** Minimum gap between chat messages or reactions from one player. */
 const SOCIAL_INTERVAL_MS = 500;
 
@@ -94,28 +99,24 @@ export class Table extends Server<Env> {
     const credential = credentialOf(connection);
     if (!credential) return;
     if (typeof message !== 'string' || message.length > MAX_MESSAGE_BYTES) {
-      send(connection, { type: 'error', message: 'Message rejected' });
+      sendError(connection, 'messageRejected');
       return;
     }
     let parsed: unknown;
     try {
       parsed = JSON.parse(message);
     } catch {
-      send(connection, { type: 'error', message: 'Message rejected' });
+      sendError(connection, 'messageRejected');
       return;
     }
     if (!isClientMessage(parsed)) {
-      send(connection, { type: 'error', message: 'Unknown message' });
+      sendError(connection, 'unknownMessage');
       return;
     }
     if (parsed.type === 'getReplay') {
       const replay = await this.ctx.storage.get<ReplayRecord>(`replay:${parsed.handNumber}`);
-      send(
-        connection,
-        replay
-          ? { type: 'replay', replay }
-          : { type: 'error', message: 'That hand has no replay yet' },
-      );
+      if (replay) send(connection, { type: 'replay', replay });
+      else sendError(connection, 'noReplay');
       return;
     }
     if (parsed.type === 'chat' || parsed.type === 'react') {
@@ -134,7 +135,8 @@ export class Table extends Server<Env> {
 
   private async commit(outcome: Outcome, connection?: Connection): Promise<void> {
     if (!outcome.ok) {
-      if (connection) send(connection, { type: 'error', message: outcome.error });
+      if (connection)
+        send(connection, { type: 'error', code: outcome.code, message: outcome.error });
       return;
     }
     if (outcome.reaction) {

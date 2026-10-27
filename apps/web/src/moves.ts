@@ -9,19 +9,12 @@ import {
   type SetKind,
 } from '@marriage/engine';
 
-export const SET_NAMES: Record<SetKind, string> = {
-  pureSequence: 'Pure sequence',
-  tunnela: 'Tunnela',
-  trial: 'Trial',
-  sequence: 'Sequence',
-  dirtyTrial: 'Trial with joker',
-};
+/** What a group is: a set kind, a dublee, or null. The UI translates the name. */
+export type GroupKind = SetKind | 'dublee';
 
-/** A short name for a group, or null if it isn't a set (or a dublee). */
-export function describeGroup(cards: readonly Card[], isWild: IsWild): string | null {
-  if (cards.length === 2 && isDublee(cards[0]!, cards[1]!)) return 'Dublee';
-  const kind = classifySet(cards, isWild);
-  return kind ? SET_NAMES[kind] : null;
+export function describeGroup(cards: readonly Card[], isWild: IsWild): GroupKind | null {
+  if (cards.length === 2 && isDublee(cards[0]!, cards[1]!)) return 'dublee';
+  return classifySet(cards, isWild);
 }
 
 const ids = (groups: readonly (readonly Card[])[]) => groups.map((g) => g.map((c) => c.id));

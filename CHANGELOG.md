@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-26
+
+### Added
+
+- English and Nepali. A switch in the top corner of every screen changes language instantly, mid-game included. The first visit follows the browser's language, and the choice is remembered on the device. Nepali uses Devanagari digits and the words players use at the table (टिप्लु, माल, डबली…), with traditional card and suit names (एक्का, बादशाह, बेगम, गुलाम; पान, ईंट, चिडी, हुकुम).
+- Error codes: every engine and server error carries a stable `code` alongside its English text, so the app shows it in the player's language. Rule-validation problems are structured (`ruleProblems`) for the same reason.
+
+### Changed
+
+- The "To see…" error names the right sets when a table allows only pure sequences.
+- The invalid-set error no longer lists internal card ids.
+
 ## [0.2.1] - 2026-10-26
 
 ### Fixed

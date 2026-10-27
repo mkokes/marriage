@@ -1,6 +1,7 @@
 import type { ReplayRecord } from '@marriage/protocol';
 import { useEffect, useMemo, useState } from 'react';
 import { sortBySuit } from './arrangement';
+import { useI18n } from './i18n';
 import { PlayingCard } from './PlayingCard';
 import { buildReplay } from './replaySteps';
 
@@ -10,11 +11,11 @@ interface Props {
   onClose: () => void;
 }
 
-const SEEN_LABEL = { unseen: null, seen: 'Seen', seenDublees: 'Seen with dublees' } as const;
-
 /** Steps through a finished hand with every card face up. */
 export function Replay({ record, names, onClose }: Props) {
-  const steps = useMemo(() => buildReplay(record, names), [record, names]);
+  const { t } = useI18n();
+  const steps = useMemo(() => buildReplay(record, names, t), [record, names, t]);
+  const seenLabel = { unseen: null, seen: t.common.seen, seenDublees: t.common.seenDublees };
   const [index, setIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
   const last = steps.length - 1;
@@ -39,9 +40,9 @@ export function Replay({ record, names, onClose }: Props) {
     <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="replay-title">
       <section className="replay">
         <header className="replay__header">
-          <h2 id="replay-title">Hand {record.handNumber} replay</h2>
+          <h2 id="replay-title">{t.replay.title(record.handNumber)}</h2>
           <button type="button" className="button button--quiet" onClick={onClose}>
-            Close
+            {t.common.close}
           </button>
         </header>
 
@@ -50,11 +51,11 @@ export function Replay({ record, names, onClose }: Props) {
         </p>
 
         <div className="replay__table">
-          <span className="muted">{state.stock.length} in stock</span>
+          <span className="muted">{t.replay.inStock(state.stock.length)}</span>
           {top && <PlayingCard card={top} size="small" />}
           {state.tiplu && (
             <span className="replay__tiplu">
-              Tiplu <PlayingCard card={state.tiplu} size="small" />
+              {t.common.tiplu} <PlayingCard card={state.tiplu} size="small" />
             </span>
           )}
         </div>
@@ -70,8 +71,8 @@ export function Replay({ record, names, onClose }: Props) {
               }
             >
               <div className="results__line">
-                <strong>{names[player.id] ?? 'A former player'}</strong>
-                {SEEN_LABEL[player.seen] && <span className="tag">{SEEN_LABEL[player.seen]}</span>}
+                <strong>{names[player.id] ?? t.common.formerPlayer}</strong>
+                {seenLabel[player.seen] && <span className="tag">{seenLabel[player.seen]}</span>}
               </div>
               <div className="results__cards">
                 {[
@@ -98,11 +99,11 @@ export function Replay({ record, names, onClose }: Props) {
             max={last}
             value={index}
             onChange={(e) => go(Number(e.target.value))}
-            aria-label={`Step ${index + 1} of ${last + 1}`}
+            aria-label={t.replay.step(index + 1, last + 1)}
           />
           <div className="button-row">
             <button type="button" className="button" onClick={() => go(0)} disabled={index === 0}>
-              Start
+              {t.replay.start}
             </button>
             <button
               type="button"
@@ -110,14 +111,14 @@ export function Replay({ record, names, onClose }: Props) {
               onClick={() => go(index - 1)}
               disabled={index === 0}
             >
-              Back
+              {t.replay.back}
             </button>
             <button
               type="button"
               className="button button--primary"
               onClick={() => (index >= last ? go(0) : setPlaying(!autoplaying))}
             >
-              {autoplaying ? 'Pause' : index >= last ? 'Replay' : 'Play'}
+              {autoplaying ? t.replay.pause : index >= last ? t.replay.again : t.replay.play}
             </button>
             <button
               type="button"
@@ -125,7 +126,7 @@ export function Replay({ record, names, onClose }: Props) {
               onClick={() => go(index + 1)}
               disabled={index >= last}
             >
-              Next
+              {t.replay.next}
             </button>
             <button
               type="button"
@@ -133,7 +134,7 @@ export function Replay({ record, names, onClose }: Props) {
               onClick={() => go(last)}
               disabled={index >= last}
             >
-              End
+              {t.replay.end}
             </button>
           </div>
         </div>

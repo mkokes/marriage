@@ -1,6 +1,7 @@
 export * from './bot';
 export * from './cards';
 export * from './config';
+export * from './errors';
 export * from './game';
 export * from './guards';
 export * from './maal';

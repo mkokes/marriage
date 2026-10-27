@@ -77,34 +77,43 @@ const ENUMS = {
 
 const BOOLEANS = ['printedJokers', 'dublees', 'jhipluPopluWild', 'kidnap', 'murder'] as const;
 
-/**
- * Returns human-readable problems with a config; empty when valid. Checks every field
- * at runtime, since rules arrive from the table host over the network.
- */
-export function validateRules(rules: unknown): string[] {
-  if (!isRecord(rules)) return ['rules must be an object'];
-  const r = rules;
-  const errors: string[] = [];
+/** One problem with a rules config, structured so apps can translate it. */
+export type RuleProblem =
+  | { kind: 'notObject' }
+  | { kind: 'decks' }
+  | { kind: 'boolean'; field: string }
+  | { kind: 'choice'; field: string; choices: readonly string[] }
+  | { kind: 'amount'; field: string; max: number }
+  | { kind: 'kidnapAndMurder' };
 
-  const amount = (name: string, value: unknown, max: number) => {
+/**
+ * Every problem with a config; empty when valid. Checks every field at runtime,
+ * since rules arrive from the table host over the network.
+ */
+export function ruleProblems(rules: unknown): RuleProblem[] {
+  if (!isRecord(rules)) return [{ kind: 'notObject' }];
+  const r = rules;
+  const problems: RuleProblem[] = [];
+
+  const amount = (field: string, value: unknown, max: number) => {
     if (typeof value !== 'number' || !Number.isInteger(value) || value < 0 || value > max) {
-      errors.push(`${name} must be a whole number from 0 to ${max}`);
+      problems.push({ kind: 'amount', field, max });
     }
   };
 
-  if (r.decks !== 3 && r.decks !== 4) errors.push('decks must be 3 or 4');
-  for (const name of BOOLEANS) {
-    if (typeof r[name] !== 'boolean') errors.push(`${name} must be true or false`);
+  if (r.decks !== 3 && r.decks !== 4) problems.push({ kind: 'decks' });
+  for (const field of BOOLEANS) {
+    if (typeof r[field] !== 'boolean') problems.push({ kind: 'boolean', field });
   }
-  for (const [name, allowed] of Object.entries(ENUMS)) {
-    if (!(allowed as readonly unknown[]).includes(r[name])) {
-      errors.push(`${name} must be one of ${allowed.join(', ')}`);
+  for (const [field, choices] of Object.entries(ENUMS)) {
+    if (!(choices as readonly unknown[]).includes(r[field])) {
+      problems.push({ kind: 'choice', field, choices });
     }
   }
 
   const maal = r.maal;
   if (!isRecord(maal)) {
-    errors.push('maal must be an object');
+    problems.push({ kind: 'amount', field: 'maal', max: MAX_POINTS });
   } else {
     const keys: (keyof MaalValues)[] = [
       'tiplu',
@@ -122,8 +131,33 @@ export function validateRules(rules: unknown): string[] {
   amount('dubleeFinishBonus', r.dubleeFinishBonus, MAX_POINTS);
   amount('turnTimerSeconds', r.turnTimerSeconds, MAX_TIMER_SECONDS);
 
-  if (r.kidnap === true && r.murder === true) errors.push('kidnap and murder cannot both be on');
-  return errors;
+  if (r.kidnap === true && r.murder === true) problems.push({ kind: 'kidnapAndMurder' });
+  return problems;
+}
+
+/** A rule problem in English. */
+export function describeRuleProblem(problem: RuleProblem): string {
+  switch (problem.kind) {
+    case 'notObject':
+      return 'rules must be an object';
+    case 'decks':
+      return 'decks must be 3 or 4';
+    case 'boolean':
+      return `${problem.field} must be true or false`;
+    case 'choice':
+      return `${problem.field} must be one of ${problem.choices.join(', ')}`;
+    case 'amount':
+      return problem.field === 'maal'
+        ? 'maal must be an object'
+        : `${problem.field} must be a whole number from 0 to ${problem.max}`;
+    default:
+      return 'kidnap and murder cannot both be on';
+  }
+}
+
+/** Human-readable (English) problems with a config; empty when valid. */
+export function validateRules(rules: unknown): string[] {
+  return ruleProblems(rules).map(describeRuleProblem);
 }
 
 export const isRulesConfig = (value: unknown): value is RulesConfig =>

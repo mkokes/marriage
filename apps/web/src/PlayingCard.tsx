@@ -1,5 +1,6 @@
 import type { Card } from '@marriage/engine';
 import { cardName, rankLabel, SUIT_GLYPH } from './cardNames';
+import { useI18n } from './i18n';
 
 interface Props {
   card: Card;
@@ -18,6 +19,7 @@ export function PlayingCard({
   size = 'hand',
   onClick,
 }: Props) {
+  const { t } = useI18n();
   const red = card.kind === 'standard' && (card.suit === 'hearts' || card.suit === 'diamonds');
   const corner =
     card.kind === 'standard' ? (
@@ -28,7 +30,7 @@ export function PlayingCard({
     ) : (
       <span>★</span>
     );
-  const pip = card.kind === 'standard' ? SUIT_GLYPH[card.suit] : 'Man';
+  const pip = card.kind === 'standard' ? SUIT_GLYPH[card.suit] : t.cards.man;
   const className = `card card--${size}${red ? ' card--red' : ''}${selected ? ' card--selected' : ''}`;
   const face = (
     <>
@@ -36,7 +38,7 @@ export function PlayingCard({
       <span className={card.kind === 'standard' ? 'card__pip' : 'card__pip card__pip--man'}>
         {pip}
       </span>
-      {wild && <span className="card__wild" title="Joker" />}
+      {wild && <span className="card__wild" title={t.cards.joker} />}
     </>
   );
 
@@ -44,14 +46,14 @@ export function PlayingCard({
     <button
       type="button"
       className={className}
-      aria-label={`${cardName(card)}${wild ? ', joker' : ''}`}
+      aria-label={wild ? `${cardName(card, t)}, ${t.cards.wild}` : cardName(card, t)}
       aria-pressed={selected}
       onClick={onClick}
     >
       {face}
     </button>
   ) : (
-    <span className={className} role="img" aria-label={cardName(card)}>
+    <span className={className} role="img" aria-label={cardName(card, t)}>
       {face}
     </span>
   );

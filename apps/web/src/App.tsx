@@ -3,6 +3,8 @@ import { useEffect, useRef } from 'react';
 import { Chat } from './Chat';
 import { Game } from './Game';
 import { Home } from './Home';
+import { useI18n } from './i18n';
+import { LanguageSwitch } from './i18n/LanguageSwitch';
 import { Lobby } from './Lobby';
 import { NewTable, NoTable } from './NewTable';
 import { pendingTables } from './pendingTables';
@@ -12,6 +14,15 @@ import { navigate, parseRoute, useSearch } from './router';
 import { useTable } from './useTable';
 
 export function App() {
+  return (
+    <>
+      <LanguageSwitch />
+      <Screen />
+    </>
+  );
+}
+
+function Screen() {
   const route = parseRoute(useSearch());
   switch (route.kind) {
     case 'home':
@@ -28,6 +39,7 @@ export function App() {
 const randomBytes = (n: number) => crypto.getRandomValues(new Uint8Array(n));
 
 function TableScreen({ room }: { room: string }) {
+  const { t } = useI18n();
   const { table, error, connected, send, dismissError, reactions, replay, closeReplay } =
     useTable(room);
   const pending = pendingTables.get(room);
@@ -61,9 +73,7 @@ function TableScreen({ room }: { room: string }) {
 
   let screen;
   if (!table || (table.status === 'new' && pending)) {
-    screen = (
-      <p className="loading">{pending ? 'Creating your table…' : `Joining table ${room}…`}</p>
-    );
+    screen = <p className="loading">{pending ? t.app.creating : t.app.joining(room)}</p>;
   } else if (table.status === 'new') screen = <NoTable code={room} />;
   else if (table.status === 'lobby')
     screen = <Lobby room={room} table={table} send={send} reactions={reactions} />;
@@ -79,12 +89,12 @@ function TableScreen({ room }: { room: string }) {
       {screen}
       {inTable && <Chat table={table} send={send} />}
       {replay && table && <Replay record={replay} names={table.names} onClose={closeReplay} />}
-      {!connected && table && <p className="banner">Reconnecting…</p>}
+      {!connected && table && <p className="banner">{t.app.reconnecting}</p>}
       {error && (
         <div className="toast" role="alert">
-          <span>{error}</span>
+          <span>{t.errors[error.code] ?? error.message}</span>
           <button type="button" className="button button--quiet" onClick={dismissError}>
-            Dismiss
+            {t.common.dismiss}
           </button>
         </div>
       )}
