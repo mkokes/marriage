@@ -121,6 +121,7 @@ describe('turns', () => {
     expect(applyAction(newHand(), action)).toEqual({
       ok: false,
       error: 'Malformed action',
+      code: 'malformedAction',
     });
   });
 
@@ -206,7 +207,9 @@ describe('seeing', () => {
       show: { groups },
     } as const;
     expect(act(base(), show).players[0]!.seen).toBe('seen');
-    expect(errorOf(base({ seeRequirement: 'pureSequenceOnly' }), show)).toMatch(/To see/);
+    expect(errorOf(base({ seeRequirement: 'pureSequenceOnly' }), show)).toBe(
+      'To see, show three pure sequences, or seven dublees',
+    );
   });
 
   it('rejects anything else and leaves the hand untouched', () => {
@@ -267,7 +270,7 @@ describe('finishing', () => {
       cardId: card('7S').id,
       groups: bad.map(ids),
     } as const;
-    expect(errorOf(state, discardAD)).toMatch(/Not a valid set/);
+    expect(errorOf(state, discardAD)).toMatch(/isn't a valid set/);
     const partial = {
       type: 'finish',
       playerId: 'p0',

@@ -11,8 +11,8 @@ const sevensWild = (c: Card) => c.kind === 'standard' && c.rank === 7;
 
 describe('describeGroup', () => {
   it('names sets and dublees', () => {
-    expect(describeGroup(run('hearts', 2), noWilds)).toBe('Pure sequence');
-    expect(describeGroup([card(5, 'clubs'), card(5, 'clubs')], noWilds)).toBe('Dublee');
+    expect(describeGroup(run('hearts', 2), noWilds)).toBe('pureSequence');
+    expect(describeGroup([card(5, 'clubs'), card(5, 'clubs')], noWilds)).toBe('dublee');
     expect(describeGroup([card(2, 'clubs'), card(9, 'clubs')], noWilds)).toBeNull();
   });
 });

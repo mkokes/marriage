@@ -11,6 +11,7 @@ A mobile-first, web-based multiplayer version of the Nepali rummy-style card gam
 - **Session:** play successive hands until the host ends the session → final totals screen.
 - **Social:** text chat, emoji reactions, spectators (see table + discards, never hands).
 - **Devices:** mobile first, installable PWA; works on desktop.
+- **Languages:** English and Nepali, switchable on every screen; the first visit follows the browser's language. Nepali uses Devanagari digits and table vocabulary.
 - **Out of scope v1:** accounts, public matchmaking, long-term stats, voice chat, real money.
 
 ## Game rules (rules engine)

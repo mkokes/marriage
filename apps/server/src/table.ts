@@ -2,18 +2,21 @@ import {
   applyAction,
   chooseBotAction,
   dealHand,
+  ENGINE_ERRORS,
   isRecord,
   isRulesConfig,
   MAX_PLAYERS,
   MIN_PLAYERS,
   STANDARD_RULES,
-  validateRules,
   viewFor,
   type HandState,
   type RulesConfig,
 } from '@marriage/engine';
 import {
   CHAT_HISTORY,
+  TABLE_ERRORS,
+  type ErrorCode,
+  type TableErrorCode,
   type ChatMessage,
   type ClientMessage,
   type HandSummary,
@@ -83,7 +86,7 @@ export type Outcome =
       /** Set for a reaction: broadcast it, don't store it. */
       reaction?: { playerId: string; emoji: Reaction };
     }
-  | { ok: false; error: string };
+  | { ok: false; error: string; code: ErrorCode };
 
 export function newTable(): TableState {
   return {
@@ -108,7 +111,7 @@ export function newTable(): TableState {
 export const seatOf = (table: TableState, credential: string): SeatState | undefined =>
   table.seats.find((s) => s.credential === credential);
 
-const fail = (error: string): Outcome => ({ ok: false, error });
+const fail = (code: TableErrorCode): Outcome => ({ ok: false, error: TABLE_ERRORS[code], code });
 
 const betweenHands = (table: TableState) => table.status === 'lobby' || table.status === 'handOver';
 
@@ -121,17 +124,15 @@ export function handleMessage(
   const next = structuredClone(table);
   const seat = seatOf(next, credential);
   const isHost = seat !== undefined && seat.playerId === next.hostId;
-  if (next.status === 'ended') return fail('The session has ended');
+  if (next.status === 'ended') return fail('sessionEnded');
   if (next.status === 'new' && message.type !== 'createTable') {
-    return fail('There is no table with this code');
+    return fail('noSuchTable');
   }
 
   switch (message.type) {
     case 'createTable': {
-      if (next.status !== 'new') return fail('That table code is already taken');
-      if (!isRulesConfig(message.rules)) {
-        return fail(`Invalid rules: ${validateRules(message.rules).join('; ')}`);
-      }
+      if (next.status !== 'new') return fail('codeTaken');
+      if (!isRulesConfig(message.rules)) return fail('invalidRules');
       const name = message.name.trim();
       const playerId = deps.newId();
       next.rules = structuredClone(message.rules);
@@ -149,10 +150,10 @@ export function handleMessage(
         next.names[seat.playerId] = name;
         return { ok: true, table: next };
       }
-      if (next.banned.includes(credential)) return fail('The host removed you from this table');
-      if (next.locked) return fail('This table is locked. Ask the host to unlock it.');
-      if (!betweenHands(next)) return fail('You can only sit down between hands');
-      if (next.seats.length >= MAX_PLAYERS) return fail('The table is full');
+      if (next.banned.includes(credential)) return fail('removedFromTable');
+      if (next.locked) return fail('tableLocked');
+      if (!betweenHands(next)) return fail('sitBetweenHands');
+      if (next.seats.length >= MAX_PLAYERS) return fail('tableFull');
       const playerId = deps.newId();
       next.seats.push({ playerId, name, credential, isBot: false });
       next.hostId ??= playerId;
@@ -161,9 +162,9 @@ export function handleMessage(
       return { ok: true, table: next };
     }
     case 'addBot': {
-      if (!isHost) return fail('Only the host can add bots');
-      if (!betweenHands(next)) return fail('Bots can only join between hands');
-      if (next.seats.length >= MAX_PLAYERS) return fail('The table is full');
+      if (!isHost) return fail('hostOnlyBots');
+      if (!betweenHands(next)) return fail('botsBetweenHands');
+      if (next.seats.length >= MAX_PLAYERS) return fail('tableFull');
       const taken = new Set(next.seats.map((s) => s.name));
       const name = BOT_NAMES.find((n) => !taken.has(n)) ?? `Bot ${next.seats.length + 1}`;
       const playerId = deps.newId();
@@ -173,22 +174,22 @@ export function handleMessage(
       return { ok: true, table: next };
     }
     case 'removePlayer': {
-      if (!isHost) return fail('Only the host can remove players');
-      if (!betweenHands(next)) return fail('Players can only be removed between hands');
+      if (!isHost) return fail('hostOnlyRemove');
+      if (!betweenHands(next)) return fail('removeBetweenHands');
       const target = next.seats.find((s) => s.playerId === message.playerId);
-      if (!target) return fail('That player is not at the table');
-      if (target === seat) return fail("You can't remove yourself; leave your seat instead");
+      if (!target) return fail('playerNotAtTable');
+      if (target === seat) return fail('cantRemoveSelf');
       next.seats = next.seats.filter((s) => s !== target);
       if (!target.isBot) next.banned.push(target.credential);
       return { ok: true, table: next };
     }
     case 'setLocked': {
-      if (!isHost) return fail('Only the host can lock the table');
+      if (!isHost) return fail('hostOnlyLock');
       next.locked = message.locked;
       return { ok: true, table: next };
     }
     case 'chat': {
-      if (!seat) return fail('Sit down to chat');
+      if (!seat) return fail('sitToChat');
       next.chat = [
         ...next.chat,
         { playerId: seat.playerId, text: message.text.trim(), at: deps.now() },
@@ -196,30 +197,27 @@ export function handleMessage(
       return { ok: true, table: next };
     }
     case 'react': {
-      if (!seat) return fail('Sit down to react');
+      if (!seat) return fail('sitToReact');
       return { ok: true, table: next, reaction: { playerId: seat.playerId, emoji: message.emoji } };
     }
     case 'leave': {
-      if (!seat) return fail("You aren't seated");
-      if (!betweenHands(next)) return fail("You can't leave in the middle of a hand");
+      if (!seat) return fail('notSeated');
+      if (!betweenHands(next)) return fail('cantLeaveMidHand');
       next.seats = next.seats.filter((s) => s !== seat);
       if (isHost) next.hostId = next.seats[0]?.playerId ?? null;
       return { ok: true, table: next };
     }
     case 'setRules': {
-      if (!isHost) return fail('Only the host can change the rules');
-      if (!betweenHands(next)) return fail('Rules can only change between hands');
-      if (!isRulesConfig(message.rules)) {
-        return fail(`Invalid rules: ${validateRules(message.rules).join('; ')}`);
-      }
+      if (!isHost) return fail('hostOnlyRules');
+      if (!betweenHands(next)) return fail('rulesBetweenHands');
+      if (!isRulesConfig(message.rules)) return fail('invalidRules');
       next.rules = structuredClone(message.rules);
       return { ok: true, table: next };
     }
     case 'start': {
-      if (!isHost) return fail('Only the host can start a hand');
-      if (!betweenHands(next)) return fail('A hand is already in progress');
-      if (next.seats.length < MIN_PLAYERS)
-        return fail(`At least ${MIN_PLAYERS} players are needed`);
+      if (!isHost) return fail('hostOnlyStart');
+      if (!betweenHands(next)) return fail('handInProgress');
+      if (next.seats.length < MIN_PLAYERS) return fail('needMorePlayers');
       const playerIds = next.seats.map((s) => s.playerId);
       const firstPlayer = next.handNumber % playerIds.length;
       next.hand = dealHand({ playerIds, rules: next.rules, seed: deps.newKey(), firstPlayer });
@@ -236,14 +234,15 @@ export function handleMessage(
       return { ok: true, table: next };
     }
     case 'action': {
-      if (next.status !== 'playing' || !next.hand) return fail('No hand is in progress');
-      if (!seat) return fail("You aren't playing in this hand");
-      if (!isRecord(message.action)) return fail('Malformed action');
+      if (next.status !== 'playing' || !next.hand) return fail('noHand');
+      if (!seat) return fail('notInHand');
+      if (!isRecord(message.action))
+        return { ok: false, error: ENGINE_ERRORS.malformedAction, code: 'malformedAction' };
       // Players always act as themselves, whatever playerId the client sent.
       return play(next, { ...message.action, playerId: seat.playerId }, deps);
     }
     case 'endSession': {
-      if (!isHost) return fail('Only the host can end the session');
+      if (!isHost) return fail('hostOnlyEnd');
       // A hand in progress is abandoned without scoring.
       next.status = 'ended';
       next.turnDeadline = null;
@@ -251,7 +250,7 @@ export function handleMessage(
       return { ok: true, table: next };
     }
     default:
-      return fail('Unknown message');
+      return fail('unknownMessage');
   }
 }
 

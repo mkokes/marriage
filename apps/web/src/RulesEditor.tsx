@@ -1,14 +1,15 @@
-import { STANDARD_RULES, validateRules, type MaalValues, type RulesConfig } from '@marriage/engine';
+import { ruleProblems, STANDARD_RULES, type MaalValues, type RulesConfig } from '@marriage/engine';
 import { useState, type ReactNode } from 'react';
+import { useI18n } from './i18n';
 
-const MAAL_FIELDS: [keyof MaalValues, string][] = [
-  ['tiplu', 'Tiplu'],
-  ['jhiplu', 'Jhiplu'],
-  ['poplu', 'Poplu'],
-  ['alter', 'Alter'],
-  ['man', 'Man (printed joker)'],
-  ['marriage', 'Marriage'],
-  ['tunnela', 'Tunnela'],
+const MAAL_FIELDS: (keyof MaalValues)[] = [
+  'tiplu',
+  'jhiplu',
+  'poplu',
+  'alter',
+  'man',
+  'marriage',
+  'tunnela',
 ];
 
 /** Reads a number input as a whole number ≥ 0. */
@@ -31,13 +32,15 @@ interface Props {
 export function RulesEditor({
   rules,
   onSave,
-  submitLabel = 'Save rules',
+  submitLabel,
   requireChange = true,
   canSubmit = true,
   children,
 }: Props) {
+  const { t } = useI18n();
   const [draft, setDraft] = useState(rules);
-  const problems = validateRules(draft);
+  // One message per kind of problem; the form can only produce a few.
+  const problems = [...new Set(ruleProblems(draft).map(t.rules.problem))];
   const changed = JSON.stringify(draft) !== JSON.stringify(rules);
   const ready = canSubmit && problems.length === 0 && (changed || !requireChange);
 
@@ -56,15 +59,15 @@ export function RulesEditor({
     >
       {children}
       <fieldset>
-        <legend>Cards</legend>
+        <legend>{t.rules.cards}</legend>
         <label className="field">
-          <span>Decks</span>
+          <span>{t.rules.decks}</span>
           <select
             value={draft.decks}
             onChange={(e) => set('decks', e.target.value === '4' ? 4 : 3)}
           >
-            <option value={3}>3</option>
-            <option value={4}>4</option>
+            <option value={3}>{t.format.number(3)}</option>
+            <option value={4}>{t.format.number(4)}</option>
           </select>
         </label>
         <label className="check">
@@ -73,7 +76,7 @@ export function RulesEditor({
             checked={draft.printedJokers}
             onChange={(e) => set('printedJokers', e.target.checked)}
           />
-          Add printed jokers (Man)
+          {t.rules.printedJokers}
         </label>
         <label className="check">
           <input
@@ -81,14 +84,14 @@ export function RulesEditor({
             checked={draft.jhipluPopluWild}
             onChange={(e) => set('jhipluPopluWild', e.target.checked)}
           />
-          Jhiplu and poplu are jokers
+          {t.rules.jhipluPopluWild}
         </label>
       </fieldset>
 
       <fieldset>
-        <legend>Play</legend>
+        <legend>{t.rules.play}</legend>
         <label className="field">
-          <span>To see the tiplu, show</span>
+          <span>{t.rules.seeRequirement}</span>
           <select
             value={draft.seeRequirement}
             onChange={(e) =>
@@ -100,8 +103,8 @@ export function RulesEditor({
               )
             }
           >
-            <option value="pureSequenceOrTunnela">3 pure sequences or tunnelas</option>
-            <option value="pureSequenceOnly">3 pure sequences</option>
+            <option value="pureSequenceOrTunnela">{t.rules.seePureOrTunnela}</option>
+            <option value="pureSequenceOnly">{t.rules.seePureOnly}</option>
           </select>
         </label>
         <label className="check">
@@ -110,10 +113,10 @@ export function RulesEditor({
             checked={draft.dublees}
             onChange={(e) => set('dublees', e.target.checked)}
           />
-          Allow seeing with 7 dublees and finishing with an 8th
+          {t.rules.dublees}
         </label>
         <label className="field">
-          <span>Taking the discard</span>
+          <span>{t.rules.discardPickup}</span>
           <select
             value={draft.discardPickup}
             onChange={(e) => {
@@ -121,13 +124,13 @@ export function RulesEditor({
               set('discardPickup', v === 'free' ? 'free' : v === 'never' ? 'never' : 'completeSet');
             }}
           >
-            <option value="completeSet">Only to complete a set</option>
-            <option value="free">Any time</option>
-            <option value="never">Never</option>
+            <option value="completeSet">{t.rules.pickupCompleteSet}</option>
+            <option value="free">{t.rules.pickupFree}</option>
+            <option value="never">{t.rules.pickupNever}</option>
           </select>
         </label>
         <label className="field">
-          <span>Turn timer (seconds, 0 for none)</span>
+          <span>{t.rules.turnTimer}</span>
           <input
             type="number"
             min={0}
@@ -137,25 +140,25 @@ export function RulesEditor({
           />
         </label>
         <label className="field">
-          <span>When the stock runs out</span>
+          <span>{t.rules.stockExhausted}</span>
           <select
             value={draft.stockExhausted}
             onChange={(e) =>
               set('stockExhausted', e.target.value === 'reshuffle' ? 'reshuffle' : 'void')
             }
           >
-            <option value="void">Nobody wins the hand</option>
-            <option value="reshuffle">Reshuffle the discards</option>
+            <option value="void">{t.rules.stockVoid}</option>
+            <option value="reshuffle">{t.rules.stockReshuffle}</option>
           </select>
         </label>
       </fieldset>
 
       <fieldset>
-        <legend>Maal points</legend>
+        <legend>{t.rules.maalPoints}</legend>
         <div className="field-grid">
-          {MAAL_FIELDS.map(([key, label]) => (
+          {MAAL_FIELDS.map((key) => (
             <label className="field" key={key}>
-              <span>{label}</span>
+              <span>{t.rules.maal[key]}</span>
               <input
                 type="number"
                 min={0}
@@ -168,10 +171,10 @@ export function RulesEditor({
       </fieldset>
 
       <fieldset>
-        <legend>Settling up</legend>
+        <legend>{t.rules.settling}</legend>
         <div className="field-grid">
           <label className="field">
-            <span>Unseen players pay</span>
+            <span>{t.rules.unseenPenalty}</span>
             <input
               type="number"
               min={0}
@@ -180,7 +183,7 @@ export function RulesEditor({
             />
           </label>
           <label className="field">
-            <span>Seen players pay</span>
+            <span>{t.rules.seenPenalty}</span>
             <input
               type="number"
               min={0}
@@ -189,7 +192,7 @@ export function RulesEditor({
             />
           </label>
           <label className="field">
-            <span>Dublee win bonus</span>
+            <span>{t.rules.dubleeFinishBonus}</span>
             <input
               type="number"
               min={0}
@@ -210,7 +213,7 @@ export function RulesEditor({
               }))
             }
           />
-          Kidnap: the winner takes unseen players' maal
+          {t.rules.kidnap}
         </label>
         <label className="check">
           <input
@@ -224,7 +227,7 @@ export function RulesEditor({
               }))
             }
           />
-          Murder: unseen players' maal counts for nothing
+          {t.rules.murder}
         </label>
       </fieldset>
 
@@ -241,10 +244,10 @@ export function RulesEditor({
           className="button"
           onClick={() => setDraft(structuredClone(STANDARD_RULES))}
         >
-          Reset to Standard
+          {t.rules.reset}
         </button>
         <button type="submit" className="button button--primary" disabled={!ready}>
-          {submitLabel}
+          {submitLabel ?? t.rules.save}
         </button>
       </div>
     </form>

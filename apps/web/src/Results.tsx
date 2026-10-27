@@ -1,6 +1,7 @@
 import type { ClientMessage, TableView } from '@marriage/protocol';
 import { PlayingCard } from './PlayingCard';
 import { ManageSeats } from './HostControls';
+import { useI18n } from './i18n';
 import { Scores } from './Scores';
 import { SitForm } from './SitForm';
 
@@ -11,9 +12,10 @@ interface Props {
 
 /** End of a hand: who won, maal and points per player, every hand revealed. */
 export function Results({ table, send }: Props) {
+  const { t } = useI18n();
   const hand = table.hand!;
   const result = hand.result!;
-  const name = (id: string) => table.names[id] ?? 'A former player';
+  const name = (id: string) => table.names[id] ?? t.common.formerPlayer;
   const won = result.kind === 'won';
   const winnerName = won ? name(hand.seats[result.winner]!.id) : null;
 
@@ -21,12 +23,12 @@ export function Results({ table, send }: Props) {
     <section className="results" aria-labelledby="results-title">
       <h2 id="results-title">
         {won
-          ? `${winnerName} wins${result.method === 'dublees' ? ' with dublees' : ''}`
-          : 'No winner: the stock ran out'}
+          ? (result.method === 'dublees' ? t.results.winsDublees : t.results.wins)(winnerName!)
+          : t.results.noWinner}
       </h2>
       {hand.tiplu && (
         <div className="results__tiplu">
-          <span>The tiplu was</span>
+          <span>{t.results.tipluWas}</span>
           <PlayingCard card={hand.tiplu} size="small" />
         </div>
       )}
@@ -37,10 +39,9 @@ export function Results({ table, send }: Props) {
               <strong>{name(seat.id)}</strong>
               {won && (
                 <>
-                  <span className="muted">Maal {result.settlement.maal[i]}</span>
+                  <span className="muted">{t.results.maal(result.settlement.maal[i]!)}</span>
                   <span className={result.settlement.net[i]! < 0 ? 'negative' : 'positive'}>
-                    {result.settlement.net[i]! > 0 ? '+' : ''}
-                    {result.settlement.net[i]}
+                    {t.format.signed(result.settlement.net[i]!)}
                   </span>
                 </>
               )}
@@ -64,7 +65,7 @@ export function Results({ table, send }: Props) {
           className="button button--quiet results__replay"
           onClick={() => send({ type: 'getReplay', handNumber: table.handNumber })}
         >
-          Watch a replay of this hand
+          {t.results.watchReplay}
         </button>
       ) : null}
       {!table.you.playerId && (
@@ -74,45 +75,50 @@ export function Results({ table, send }: Props) {
       {table.you.isHost ? (
         <div className="button-row">
           <button type="button" className="button" onClick={() => send({ type: 'endSession' })}>
-            End session
+            {t.results.endSession}
           </button>
           <button
             type="button"
             className="button button--primary"
             onClick={() => send({ type: 'start' })}
           >
-            Deal the next hand
+            {t.results.dealNext}
           </button>
         </div>
       ) : (
-        <p className="muted">Waiting for the host to deal the next hand.</p>
+        <p className="muted">{t.results.waitingNext}</p>
       )}
     </section>
   );
 }
 
 export function FinalScores({ table, send }: Props) {
+  const { t } = useI18n();
   return (
     <main className="final">
       <div className="dhaka-band" aria-hidden="true" />
-      <h1 className="lobby__title">Thanks for playing</h1>
+      <h1 className="lobby__title">{t.results.thanks}</h1>
       <Scores table={table} />
       {table.history.length > 0 && (
         <section className="final__hands" aria-labelledby="hands">
-          <h2 id="hands">Hands</h2>
+          <h2 id="hands">{t.results.hands}</h2>
           <ol>
             {table.history.map((h) => (
               <li key={h.handNumber}>
                 <span>
-                  Hand {h.handNumber}:{' '}
-                  {h.winner ? `${table.names[h.winner] ?? 'A former player'} won` : 'no winner'}
+                  {h.winner
+                    ? t.results.handWon(
+                        h.handNumber,
+                        table.names[h.winner] ?? t.common.formerPlayer,
+                      )
+                    : t.results.handNoWinner(h.handNumber)}
                 </span>
                 <button
                   type="button"
                   className="button button--quiet"
                   onClick={() => send({ type: 'getReplay', handNumber: h.handNumber })}
                 >
-                  Replay
+                  {t.results.replay}
                 </button>
               </li>
             ))}
@@ -120,7 +126,7 @@ export function FinalScores({ table, send }: Props) {
         </section>
       )}
       <a className="button button--primary" href="?new">
-        Start a new table
+        {t.results.newTable}
       </a>
     </main>
   );

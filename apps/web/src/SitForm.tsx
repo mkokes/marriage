@@ -1,6 +1,7 @@
 import { MAX_PLAYERS } from '@marriage/engine';
 import { MAX_NAME_LENGTH, type TableView } from '@marriage/protocol';
 import { useState } from 'react';
+import { useI18n } from './i18n';
 import { local, NAME_KEY } from './storage';
 
 /**
@@ -8,14 +9,11 @@ import { local, NAME_KEY } from './storage';
  * this device.
  */
 export function SitForm({ table, onSit }: { table: TableView; onSit: (name: string) => void }) {
+  const { t } = useI18n();
   const [name, setName] = useState(() => local.get(NAME_KEY) ?? '');
-  if (table.you.removed) return <p className="muted">The host removed you from this table.</p>;
-  if (table.locked) {
-    return <p className="muted">This table is locked. Ask the host to unlock it to sit down.</p>;
-  }
-  if (table.seats.length >= MAX_PLAYERS) {
-    return <p className="muted">The table is full. You're watching.</p>;
-  }
+  if (table.you.removed) return <p className="muted">{t.sit.removed}</p>;
+  if (table.locked) return <p className="muted">{t.sit.locked}</p>;
+  if (table.seats.length >= MAX_PLAYERS) return <p className="muted">{t.sit.full}</p>;
   return (
     <form
       className="sit"
@@ -27,7 +25,7 @@ export function SitForm({ table, onSit }: { table: TableView; onSit: (name: stri
         onSit(trimmed);
       }}
     >
-      <label htmlFor="name">Your name</label>
+      <label htmlFor="name">{t.sit.yourName}</label>
       <div className="field-row">
         <input
           id="name"
@@ -37,7 +35,7 @@ export function SitForm({ table, onSit }: { table: TableView; onSit: (name: stri
           autoComplete="nickname"
         />
         <button type="submit" className="button button--primary">
-          Sit down
+          {t.sit.sitDown}
         </button>
       </div>
     </form>

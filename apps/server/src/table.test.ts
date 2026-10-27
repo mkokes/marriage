@@ -98,7 +98,7 @@ describe('creating a table', () => {
   it('rejects bad rules and codes that are already taken', () => {
     const deps = fakeDeps();
     const bad = { type: 'createTable', name: 'Asha', rules: { decks: 9 } } as const;
-    expect(err(send(newTable(), 'c1', bad, deps))).toMatch(/Invalid rules/);
+    expect(err(send(newTable(), 'c1', bad, deps))).toMatch(/rules aren't valid/);
     const { table } = seated(1, deps);
     const again = { type: 'createTable', name: 'Bikash', rules: STANDARD_RULES } as const;
     expect(err(send(table, 'c2', again, deps))).toMatch(/already taken/);
@@ -145,7 +145,7 @@ describe('rules', () => {
     const rules = { ...table.rules, kidnap: true };
     expect(err(send(table, 'c2', { type: 'setRules', rules }, deps))).toMatch(/Only the host/);
     expect(err(send(table, 'c1', { type: 'setRules', rules: { decks: 9 } }, deps))).toMatch(
-      /Invalid rules/,
+      /rules aren't valid/,
     );
     expect(ok(send(table, 'c1', { type: 'setRules', rules }, deps)).rules.kidnap).toBe(true);
   });

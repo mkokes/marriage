@@ -1,5 +1,6 @@
 import { buildShoe, type Card } from './cards';
 import { MAX_PLAYERS, MIN_PLAYERS, validateRules, type RulesConfig } from './config';
+import { ENGINE_ERRORS, type EngineErrorCode } from './errors';
 import { wildsFor } from './maal';
 import { isRecord } from './guards';
 import { createRng, randomInt, shuffle, type RngState } from './random';
@@ -62,7 +63,10 @@ export type Action =
   /** Discards and ends the hand. `groups` must cover every remaining concealed card. */
   | { type: 'finish'; playerId: string; cardId: string; groups: Groups };
 
-export type ActionResult = { ok: true; state: HandState } | { ok: false; error: string };
+/** On failure, `code` identifies the problem for translation; `error` is its English text. */
+export type ActionResult =
+  | { ok: true; state: HandState }
+  | { ok: false; error: string; code: EngineErrorCode };
 
 // Bounds for client-supplied arrays; generous for real play, small enough to stay cheap.
 const MAX_ID_LENGTH = 64;
@@ -108,10 +112,14 @@ export function isAction(value: unknown): value is Action {
   }
 }
 
-class RuleError extends Error {}
+class RuleError extends Error {
+  constructor(readonly code: EngineErrorCode) {
+    super(ENGINE_ERRORS[code]);
+  }
+}
 
-const fail = (message: string): never => {
-  throw new RuleError(message);
+const fail = (code: EngineErrorCode): never => {
+  throw new RuleError(code);
 };
 
 export interface DealOptions {
@@ -160,32 +168,34 @@ export function dealHand({ playerIds, rules, seed, firstPlayer = 0 }: DealOption
  * `unknown` because actions come from clients: malformed input is rejected, not thrown.
  */
 export function applyAction(state: HandState, action: unknown): ActionResult {
-  if (!isAction(action)) return { ok: false, error: 'Malformed action' };
+  if (!isAction(action)) {
+    return { ok: false, error: ENGINE_ERRORS.malformedAction, code: 'malformedAction' };
+  }
   try {
     const next = structuredClone(state);
     apply(next, action);
     return { ok: true, state: next };
   } catch (error) {
-    if (error instanceof RuleError) return { ok: false, error: error.message };
+    if (error instanceof RuleError) return { ok: false, error: error.message, code: error.code };
     throw error;
   }
 }
 
 function apply(state: HandState, action: Action): void {
-  if (state.phase === 'over') fail('The hand is over');
+  if (state.phase === 'over') fail('handOver');
   const player = state.players[state.turn]!;
-  if (player.id !== action.playerId) fail("It isn't your turn");
+  if (player.id !== action.playerId) fail('notYourTurn');
 
   switch (action.type) {
     case 'drawStock': {
-      if (state.phase !== 'draw') fail('You have already drawn');
-      player.hand.push(state.stock.pop() ?? fail('The stock is empty'));
+      if (state.phase !== 'draw') fail('alreadyDrawn');
+      player.hand.push(state.stock.pop() ?? fail('stockEmpty'));
       state.phase = 'discard';
       return;
     }
     case 'drawDiscard': {
-      if (state.phase !== 'draw') fail('You have already drawn');
-      const top = state.discardPile.at(-1) ?? fail('The discard pile is empty');
+      if (state.phase !== 'draw') fail('alreadyDrawn');
+      const top = state.discardPile.at(-1) ?? fail('discardEmpty');
       checkDiscardPickup(state, player, top, action.withCards ?? []);
       player.hand.push(state.discardPile.pop()!);
       state.pickedFromDiscard = top.id;
@@ -214,18 +224,18 @@ function apply(state: HandState, action: Action): void {
 }
 
 function discard(state: HandState, player: PlayerHand, cardId: string): void {
-  if (state.phase !== 'discard') fail('Draw a card first');
-  if (cardId === state.pickedFromDiscard) fail("You can't discard the card you just picked up");
+  if (state.phase !== 'discard') fail('drawFirst');
+  if (cardId === state.pickedFromDiscard) fail('cantDiscardPickup');
   const [card] = takeCards(player, [cardId]);
   state.discardPile.push(card!);
 }
 
 /** Removes the given cards from the player's concealed hand, in order. */
 function takeCards(player: PlayerHand, ids: readonly string[]): Card[] {
-  if (new Set(ids).size !== ids.length) fail('The same card is used twice');
+  if (new Set(ids).size !== ids.length) fail('cardUsedTwice');
   return ids.map((id) => {
     const index = player.hand.findIndex((c) => c.id === id);
-    if (index === -1) fail("That card isn't in your hand");
+    if (index === -1) fail('cardNotInHand');
     return player.hand.splice(index, 1)[0]!;
   });
 }
@@ -242,15 +252,15 @@ function checkDiscardPickup(
 ): void {
   const { discardPickup } = state.rules;
   if (discardPickup === 'free') return;
-  if (discardPickup === 'never') fail('Taking from the discard pile is not allowed at this table');
+  if (discardPickup === 'never') fail('pickupNotAllowed');
 
   const others = takeCards(structuredClone(player), withIds);
   if (player.seen === 'seenDublees') {
     if (others.length === 1 && isDublee(top, others[0]!)) return;
-    fail('After seeing with dublees you can only take a discard that makes a dublee');
+    fail('pickupDubleeOnly');
   }
   if (others.length >= 2 && classifySet([top, ...others], wildsForPlayer(state, player))) return;
-  fail('You can only take the discard if it completes a set with cards in your hand');
+  fail('pickupMustCompleteSet');
 }
 
 /** Set kinds that count toward seeing, per `seeRequirement`. */
@@ -260,7 +270,7 @@ export const PRIMARY_KINDS: Record<RulesConfig['seeRequirement'], readonly SetKi
 };
 
 function see(state: HandState, player: PlayerHand, groups: Groups, tipluPick?: number): void {
-  if (player.seen !== 'unseen') fail('You have already seen');
+  if (player.seen !== 'unseen') fail('alreadySeen');
 
   // Failing is safe mid-way: applyAction works on a copy that is dropped on error.
   const cardGroups = groups.map((ids) => takeCards(player, ids));
@@ -275,11 +285,9 @@ function see(state: HandState, player: PlayerHand, groups: Groups, tipluPick?: n
   ) {
     player.seen = 'seenDublees';
   } else {
-    fail(
-      state.rules.dublees
-        ? 'To see, show three pure sequences or tunnelas, or seven dublees'
-        : 'To see, show three pure sequences or tunnelas',
-    );
+    const pureOnly = state.rules.seeRequirement === 'pureSequenceOnly';
+    if (state.rules.dublees) fail(pureOnly ? 'seePureOrDublees' : 'seeSetsOrDublees');
+    fail(pureOnly ? 'seePure' : 'seeSets');
   }
   player.shown = cardGroups;
   if (!state.tiplu) chooseTiplu(state, tipluPick);
@@ -301,7 +309,7 @@ function chooseTiplu(state: HandState, pick?: number): void {
     index = r.value;
   }
   if (!Number.isInteger(index) || index < 0 || index >= state.stock.length) {
-    fail('Pick a card from the stock');
+    fail('pickFromStock');
   }
   const [tiplu] = state.stock.splice(index, 1);
   state.stock.unshift(tiplu!);
@@ -309,24 +317,24 @@ function chooseTiplu(state: HandState, pick?: number): void {
 }
 
 function checkFinish(state: HandState, player: PlayerHand, groups: Groups): 'sets' | 'dublees' {
-  if (player.seen === 'unseen') fail('You must see before you can finish');
+  if (player.seen === 'unseen') fail('mustSeeFirst');
   const hand = structuredClone(player);
 
   if (player.seen === 'seenDublees') {
     // The eighth dublee ends the game; the remaining cards don't need to form sets.
     const [a, b, extra] = groups.length === 1 ? takeCards(hand, groups[0]!) : [];
-    if (!a || !b || extra || !isDublee(a, b)) fail('Finishing with dublees needs an eighth dublee');
+    if (!a || !b || extra || !isDublee(a, b)) fail('needEighthDublee');
     return 'dublees';
   }
 
   const covered = groups.flat();
   if (covered.length !== player.hand.length || new Set(covered).size !== covered.length) {
-    fail('Every card in your hand must be in exactly one set');
+    fail('everyCardInOneSet');
   }
   const cardGroups = groups.map((ids) => takeCards(hand, ids));
   const isWild = wildsForPlayer(state, player);
   const invalid = cardGroups.find((g) => !classifySet(g, isWild));
-  if (invalid) fail(`Not a valid set: ${invalid.map((c) => c.id).join(', ')}`);
+  if (invalid) fail('invalidSet');
   return 'sets';
 }
 

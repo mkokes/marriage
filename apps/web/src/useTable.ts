@@ -2,6 +2,7 @@ import { isRecord } from '@marriage/engine';
 import {
   TABLE_PARTY,
   type ClientMessage,
+  type ErrorCode,
   type Reaction,
   type ReplayRecord,
   type ServerMessage,
@@ -30,7 +31,8 @@ export type Reactions = Record<string, { emoji: Reaction; at: number }>;
 /** Connects to a table and keeps its latest view. Errors clear on the next update. */
 export function useTable(room: string) {
   const [table, setTable] = useState<TableView | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  /** The latest error from the server; the UI translates it by code. */
+  const [error, setError] = useState<{ code: ErrorCode; message: string } | null>(null);
   const [connected, setConnected] = useState(false);
   /** The latest reaction from each player, with when it arrived. */
   const [reactions, setReactions] = useState<Reactions>({});
@@ -57,7 +59,7 @@ export function useTable(room: string) {
           setError(null);
           break;
         case 'error':
-          setError(message.message);
+          setError({ code: message.code, message: message.message });
           break;
         case 'reaction':
           setReactions((r) => ({

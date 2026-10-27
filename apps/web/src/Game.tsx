@@ -2,6 +2,7 @@ import { NO_WILDS, wildsFor, type Card } from '@marriage/engine';
 import type { ClientMessage, TableView } from '@marriage/protocol';
 import { useState } from 'react';
 import { moveCards, reconcile, sortByRank, sortBySuit, type Arrangement } from './arrangement';
+import { useI18n } from './i18n';
 import { describeGroup, finishGroups, showGroups } from './moves';
 import { CardBack, PlayingCard } from './PlayingCard';
 import { ReactionBubble } from './ReactionBubble';
@@ -31,10 +32,10 @@ function loadArrangement(key: string): Arrangement | null {
   }
 }
 
-const SEEN_LABEL = { unseen: null, seen: 'Seen', seenDublees: 'Seen with dublees' } as const;
-
 /** The table during a hand, and the results once it's over. Keyed by hand number. */
 export function Game({ room, table, send, reactions }: Props) {
+  const { t } = useI18n();
+  const seenLabel = { unseen: null, seen: t.common.seen, seenDublees: t.common.seenDublees };
   const hand = table.hand!;
   const you = hand.you;
   const cards = you?.hand ?? [];
@@ -79,7 +80,7 @@ export function Game({ room, table, send, reactions }: Props) {
   const secondsLeft =
     table.turnDeadline === null ? null : Math.max(0, Math.ceil((table.turnDeadline - now) / 1000));
 
-  const name = (id: string) => table.names[id] ?? 'A former player';
+  const name = (id: string) => table.names[id] ?? t.common.formerPlayer;
   const seatAway = (id: string) => table.seats.find((s) => s.playerId === id)?.connected === false;
   const turnName = name(hand.seats[hand.turn]!.id);
   const topDiscard = hand.discardPile.at(-1) ?? null;
@@ -89,23 +90,20 @@ export function Game({ room, table, send, reactions }: Props) {
     act(pickupNeedsCards ? { type: 'drawDiscard', withCards: selection } : { type: 'drawDiscard' });
 
   let prompt: string;
-  if (!myTurn) prompt = you ? `${turnName}'s turn` : `Watching: ${turnName}'s turn`;
-  else if (canDraw) {
-    prompt = pickupNeedsCards
-      ? 'Your turn. Draw from the stock, or select the cards the discard completes and take it.'
-      : 'Your turn. Draw from the stock or take the discard.';
-  } else if (show) prompt = 'You can show your sets as you discard.';
-  else if (finish) prompt = 'You can finish the game with this discard.';
-  else prompt = 'Select one card to discard.';
+  if (!myTurn) prompt = you ? t.game.turnOf(turnName) : t.game.watching(turnName);
+  else if (canDraw) prompt = pickupNeedsCards ? t.game.yourTurnComplete : t.game.yourTurn;
+  else if (show) prompt = t.game.canShow;
+  else if (finish) prompt = t.game.canFinish;
+  else prompt = t.game.selectDiscard;
 
   return (
     <main className="game">
       <div className="dhaka-band" aria-hidden="true" />
       <header className="game__bar">
-        <span className="game__table">Table {room}</span>
-        <span className="muted">Hand {table.handNumber}</span>
+        <span className="game__table">{t.game.table(room)}</span>
+        <span className="muted">{t.game.hand(table.handNumber)}</span>
         <details className="game__scores">
-          <summary>Scores</summary>
+          <summary>{t.game.scores}</summary>
           <Scores table={table} />
         </details>
       </header>
@@ -122,9 +120,9 @@ export function Game({ room, table, send, reactions }: Props) {
                 <ReactionBubble reactions={reactions} playerId={seat.id} />
               </span>
               <span className="opponent__meta">
-                {seat.handCount} cards
-                {SEEN_LABEL[seat.seen] && <span className="tag">{SEEN_LABEL[seat.seen]}</span>}
-                {seatAway(seat.id) && <span className="muted">away</span>}
+                {t.game.cards(seat.handCount)}
+                {seenLabel[seat.seen] && <span className="tag">{seenLabel[seat.seen]}</span>}
+                {seatAway(seat.id) && <span className="muted">{t.common.away}</span>}
               </span>
               {seat.shown.length > 0 && (
                 <span className="opponent__shown">
@@ -142,47 +140,49 @@ export function Game({ room, table, send, reactions }: Props) {
         )}
       </ul>
 
-      <section className="felt" aria-label="Table">
+      <section className="felt" aria-label={t.game.tableRegion}>
         <div className="felt__piles">
           <button
             type="button"
             className="pile"
             disabled={!canDraw}
             onClick={() => act({ type: 'drawStock' })}
-            aria-label={`Draw from the stock, ${hand.stockCount} cards`}
+            aria-label={t.game.drawStock(hand.stockCount)}
           >
             <CardBack />
-            <span className="pile__count">{hand.stockCount}</span>
+            <span className="pile__count">{t.format.number(hand.stockCount)}</span>
           </button>
           <button
             type="button"
             className="pile"
             disabled={!canDraw || !topDiscard || table.rules.discardPickup === 'never'}
             onClick={takeDiscard}
-            aria-label={topDiscard ? 'Take the discard' : 'The discard pile is empty'}
+            aria-label={topDiscard ? t.game.takeDiscard : t.game.discardEmpty}
           >
             {topDiscard ? (
               <PlayingCard card={topDiscard} />
             ) : (
               <span className="card card--hand card--empty" />
             )}
-            <span className="pile__count">{hand.discardPile.length}</span>
+            <span className="pile__count">{t.format.number(hand.discardPile.length)}</span>
           </button>
           {hand.tiplu && (
             <div className="tiplu">
               <PlayingCard card={hand.tiplu} size="small" />
-              <span>Tiplu</span>
+              <span>{t.common.tiplu}</span>
             </div>
           )}
         </div>
         <p className={myTurn ? 'prompt prompt--yours' : 'prompt'} aria-live="polite">
           {prompt}
-          {secondsLeft !== null && <span className="prompt__timer">{secondsLeft}s</span>}
+          {secondsLeft !== null && (
+            <span className="prompt__timer">{t.game.seconds(secondsLeft)}</span>
+          )}
         </p>
       </section>
 
       {you && (
-        <section className="me" aria-label="Your cards">
+        <section className="me" aria-label={t.game.yourCards}>
           {you.shown.length > 0 && (
             <div className="me__shown">
               {you.shown.map((group, g) => (
@@ -203,7 +203,7 @@ export function Game({ room, table, send, reactions }: Props) {
                 disabled={!discardId}
                 onClick={() => act({ type: 'discard', cardId: discardId })}
               >
-                Discard
+                {t.game.discard}
               </button>
               {you.seen === 'unseen' && (
                 <button
@@ -214,7 +214,7 @@ export function Game({ room, table, send, reactions }: Props) {
                     act({ type: 'discard', cardId: discardId, show: { groups: show } })
                   }
                 >
-                  Discard and show
+                  {t.game.discardShow}
                 </button>
               )}
               {you.seen !== 'unseen' && (
@@ -224,7 +224,7 @@ export function Game({ room, table, send, reactions }: Props) {
                   disabled={!finish}
                   onClick={() => act({ type: 'finish', cardId: discardId, groups: finish })}
                 >
-                  Discard and finish
+                  {t.game.discardFinish}
                 </button>
               )}
             </div>
@@ -233,7 +233,8 @@ export function Game({ room, table, send, reactions }: Props) {
           <div className="hand">
             {arrangement.map((ids, g) => {
               const groupCards = ids.map((id) => byId.get(id)!);
-              const label = describeGroup(groupCards, isWild);
+              const kind = describeGroup(groupCards, isWild);
+              const label = kind ? t.game.sets[kind] : null;
               const canMoveHere =
                 selection.length > 0 && !selection.every((id) => ids.includes(id));
               return (
@@ -258,7 +259,7 @@ export function Game({ room, table, send, reactions }: Props) {
                         setSelected([]);
                       }}
                     >
-                      Move here
+                      {t.game.moveHere}
                     </button>
                   ) : (
                     <span className="group__label">{label ?? ' '}</span>
@@ -277,7 +278,7 @@ export function Game({ room, table, send, reactions }: Props) {
                   setSelected([]);
                 }}
               >
-                New group
+                {t.game.newGroup}
               </button>
             )}
           </div>
@@ -289,14 +290,14 @@ export function Game({ room, table, send, reactions }: Props) {
               className="button button--quiet"
               onClick={() => arrange(sortBySuit(cards))}
             >
-              Sort by suit
+              {t.game.sortSuit}
             </button>
             <button
               type="button"
               className="button button--quiet"
               onClick={() => arrange(sortByRank(cards))}
             >
-              Sort by rank
+              {t.game.sortRank}
             </button>
             {selection.length > 0 && (
               <button
@@ -304,7 +305,7 @@ export function Game({ room, table, send, reactions }: Props) {
                 className="button button--quiet"
                 onClick={() => setSelected([])}
               >
-                Clear selection
+                {t.game.clearSelection}
               </button>
             )}
           </div>

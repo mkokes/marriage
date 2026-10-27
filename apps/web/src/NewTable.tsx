@@ -1,6 +1,7 @@
 import { STANDARD_RULES } from '@marriage/engine';
 import { MAX_NAME_LENGTH, newTableCode } from '@marriage/protocol';
 import { useState } from 'react';
+import { useI18n } from './i18n';
 import { pendingTables } from './pendingTables';
 import { navigate } from './router';
 import { RulesEditor } from './RulesEditor';
@@ -10,21 +11,19 @@ const randomBytes = (n: number) => crypto.getRandomValues(new Uint8Array(n));
 
 /** Choose the rules (Standard to start) and your name, then create the table. */
 export function NewTable() {
+  const { t } = useI18n();
   const [name, setName] = useState(() => local.get(NAME_KEY) ?? '');
 
   return (
     <main className="setup">
       <div className="dhaka-band" aria-hidden="true" />
       <header className="setup__header">
-        <h1 className="lobby__title">Set up your table</h1>
-        <p>
-          These are the Standard rules, the most common way to play. Change anything your family
-          plays differently. Once the table is created, you'll get a code to share.
-        </p>
+        <h1 className="lobby__title">{t.setup.title}</h1>
+        <p>{t.setup.intro}</p>
       </header>
       <RulesEditor
         rules={STANDARD_RULES}
-        submitLabel="Create table"
+        submitLabel={t.setup.create}
         requireChange={false}
         canSubmit={name.trim().length > 0}
         onSave={(rules) => {
@@ -36,7 +35,7 @@ export function NewTable() {
         }}
       >
         <label className="field">
-          <span>Your name</span>
+          <span>{t.setup.yourName}</span>
           <input
             value={name}
             maxLength={MAX_NAME_LENGTH}
@@ -47,7 +46,7 @@ export function NewTable() {
         </label>
       </RulesEditor>
       <button type="button" className="button button--quiet" onClick={() => navigate('')}>
-        Back
+        {t.setup.back}
       </button>
     </main>
   );
@@ -55,17 +54,18 @@ export function NewTable() {
 
 /** For a code nobody has created, or one that can't be a code. */
 export function NoTable({ code }: { code: string }) {
+  const { t } = useI18n();
   return (
     <main className="final">
       <div className="dhaka-band" aria-hidden="true" />
-      <h1 className="lobby__title">No table called {code}</h1>
-      <p>Check the code with whoever invited you. Codes are four letters, like QXRT.</p>
+      <h1 className="lobby__title">{t.noTable.title(code)}</h1>
+      <p>{t.noTable.body}</p>
       <div className="button-row">
         <button type="button" className="button button--primary" onClick={() => navigate('')}>
-          Enter another code
+          {t.noTable.enterAnother}
         </button>
         <button type="button" className="button" onClick={() => navigate('?new')}>
-          Start a table
+          {t.noTable.start}
         </button>
       </div>
     </main>

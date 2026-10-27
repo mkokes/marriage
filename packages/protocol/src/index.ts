@@ -1,4 +1,4 @@
-import { isRecord, type HandView, type RulesConfig } from '@marriage/engine';
+import { isRecord, type EngineErrorCode, type HandView, type RulesConfig } from '@marriage/engine';
 
 /** Path of the table WebSocket: `/parties/table/<code>?token=<token>`. */
 export const TABLE_PARTY = 'table';
@@ -132,9 +132,48 @@ export interface TableView {
   turnDeadline: number | null;
 }
 
+/** Every table-level problem the server reports, by stable code, with its English text. */
+export const TABLE_ERRORS = {
+  sessionEnded: 'The session has ended',
+  noSuchTable: 'There is no table with this code',
+  codeTaken: 'That table code is already taken',
+  invalidRules: "Those rules aren't valid",
+  removedFromTable: 'The host removed you from this table',
+  tableLocked: 'This table is locked. Ask the host to unlock it.',
+  sitBetweenHands: 'You can only sit down between hands',
+  tableFull: 'The table is full',
+  hostOnlyBots: 'Only the host can add bots',
+  botsBetweenHands: 'Bots can only join between hands',
+  hostOnlyRemove: 'Only the host can remove players',
+  removeBetweenHands: 'Players can only be removed between hands',
+  playerNotAtTable: 'That player is not at the table',
+  cantRemoveSelf: "You can't remove yourself; leave your seat instead",
+  hostOnlyLock: 'Only the host can lock the table',
+  sitToChat: 'Sit down to chat',
+  sitToReact: 'Sit down to react',
+  notSeated: "You aren't seated",
+  cantLeaveMidHand: "You can't leave in the middle of a hand",
+  hostOnlyRules: 'Only the host can change the rules',
+  rulesBetweenHands: 'Rules can only change between hands',
+  hostOnlyStart: 'Only the host can start a hand',
+  handInProgress: 'A hand is already in progress',
+  needMorePlayers: 'At least 2 players are needed',
+  noHand: 'No hand is in progress',
+  notInHand: "You aren't playing in this hand",
+  hostOnlyEnd: 'Only the host can end the session',
+  unknownMessage: 'Unknown message',
+  messageRejected: 'Message rejected',
+  noReplay: 'That hand has no replay yet',
+} as const;
+
+export type TableErrorCode = keyof typeof TABLE_ERRORS;
+/** Any error the server can send; apps translate by code. */
+export type ErrorCode = TableErrorCode | EngineErrorCode;
+
 export type ServerMessage =
   | { type: 'table'; table: TableView }
-  | { type: 'error'; message: string }
+  /** `message` is the English text, a fallback for codes the app doesn't know. */
+  | { type: 'error'; code: ErrorCode; message: string }
   | { type: 'reaction'; playerId: string; emoji: Reaction }
   | { type: 'replay'; replay: ReplayRecord };
 
