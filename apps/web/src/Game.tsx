@@ -154,13 +154,14 @@ export function Game({ room, table, send, reactions }: Props) {
           </button>
           <button
             type="button"
-            className="pile"
+            className="pile pile--discard"
             disabled={!canDraw || !topDiscard || table.rules.discardPickup === 'never'}
             onClick={takeDiscard}
             aria-label={topDiscard ? t.game.takeDiscard : t.game.discardEmpty}
           >
             {topDiscard ? (
-              <PlayingCard card={topDiscard} />
+              // Keyed so each new discard remounts and plays its landing animation.
+              <PlayingCard key={topDiscard.id} card={topDiscard} />
             ) : (
               <span className="card card--hand card--empty" />
             )}

@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-26
+
+### Added
+
+- Light and dark themes. The app follows the device's setting by default; a System / Light / Dark switch beside the language switch (a single button on phones) overrides it, and the choice is remembered on the device. Light mode is a daytime lokta-paper look; the card table stays a night-indigo felt in both.
+
+### Changed
+
+- A more festive look: a starry Tihar night sky with diyo glow (or a paper-grain day), a marigold garland under the dhaka band, a clay diyo on the home screen, Yatra One section headings with a beaded rule, a woven felt table with a lamp-lit centre, and cards with a printed paper face and a framed dhaka back with a marigold medallion.
+- Motion: cards are dealt into your hand, each discard lands on the pile, the player whose turn it is has a flickering diyo, your turn prompt glows, and screens rise into place. All of it is off when the device asks for reduced motion.
+
 ## [0.3.0] - 2026-10-26
 
 ### Added
