@@ -22,7 +22,7 @@ concurrency:
 
 jobs:
   build:
-    name: Check, deploy game server, build web app
+    name: Check, build web app, deploy game server
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -37,14 +37,16 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint && pnpm format:check && pnpm typecheck && pnpm test
-      - name: Deploy game server
-        run: pnpm run deploy
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      # Build before deploying anything, so a broken web build can't leave a new
+      # server live behind the old web app.
       - name: Build web app
         run: pnpm --filter @marriage/web build
         env:
           VITE_GAME_HOST: cards-api.martykokes.com
+      - name: Deploy game server
+        run: pnpm run deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: apps/web/dist

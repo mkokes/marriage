@@ -67,6 +67,6 @@ To deploy the game server by hand instead, run `pnpm --filter @marriage/server e
 
 `pnpm run preview` serves the production web build on `http://localhost:4173` against a local Worker.
 
-A pre-push hook runs lint, format check, typecheck and tests. Work happens on branches and lands through pull requests.
+A pre-push hook runs lint, format check, typecheck, tests and the production build. Work happens on branches and lands through pull requests.
 
 Project structure, conventions and gotchas are in [AGENTS.md](AGENTS.md); product scope and the full rules are in [docs/SPEC.md](docs/SPEC.md).
