@@ -269,7 +269,7 @@ describe('tableView', () => {
     const connected = new Set(['c1', 'c3']);
     const view = tableView(table, 'c2', connected);
 
-    expect(view.you).toEqual({ playerId: 'player-2', isHost: false });
+    expect(view.you).toEqual({ playerId: 'player-2', isHost: false, removed: false });
     expect(view.seats.map((s) => s.connected)).toEqual([true, false, true]);
     expect(view.hand!.you!.hand).toEqual(table.hand!.players[1]!.hand);
     expect(view.hand!.seats.every((s) => s.hand === null)).toBe(true);
@@ -282,7 +282,7 @@ describe('tableView', () => {
   it('treats unseated connections as spectators', () => {
     const { table } = started(2);
     const view = tableView(table, 'stranger', new Set());
-    expect(view.you).toEqual({ playerId: null, isHost: false });
+    expect(view.you).toEqual({ playerId: null, isHost: false, removed: false });
     expect(view.hand!.you).toBeNull();
   });
 });
@@ -299,9 +299,9 @@ describe('bots', () => {
       connected: true,
     });
 
-    const removed = ok(send(withBot, 'c1', { type: 'removeBot', playerId: bot.playerId }, deps));
+    const removed = ok(send(withBot, 'c1', { type: 'removePlayer', playerId: bot.playerId }, deps));
     expect(removed.seats).toHaveLength(1);
-    expect(err(send(removed, 'c1', { type: 'removeBot', playerId: 'player-1' }, deps))).toMatch(
+    expect(err(send(removed, 'c1', { type: 'removePlayer', playerId: 'nobody' }, deps))).toMatch(
       /not at the table/,
     );
   });
@@ -359,5 +359,53 @@ describe('chat and reactions', () => {
     const outcome = send(table, 'c2', { type: 'react', emoji: '👏' }, deps);
     expect(outcome).toMatchObject({ ok: true, reaction: { playerId: 'player-2', emoji: '👏' } });
     expect(outcome.ok && outcome.table).toEqual(table);
+  });
+});
+
+describe('host controls', () => {
+  it('removes another player, who then cannot sit again', () => {
+    const { table, deps } = seated(3);
+    expect(err(send(table, 'c2', { type: 'removePlayer', playerId: 'player-3' }, deps))).toMatch(
+      /Only the host/,
+    );
+    expect(err(send(table, 'c1', { type: 'removePlayer', playerId: 'player-1' }, deps))).toMatch(
+      /can't remove yourself/,
+    );
+
+    const removed = ok(send(table, 'c1', { type: 'removePlayer', playerId: 'player-3' }, deps));
+    expect(removed.seats.map((s) => s.playerId)).toEqual(['player-1', 'player-2']);
+    expect(tableView(removed, 'c3', new Set()).you).toEqual({
+      playerId: null,
+      isHost: false,
+      removed: true,
+    });
+    expect(err(send(removed, 'c3', { type: 'sit', name: 'Again' }, deps))).toMatch(/removed you/);
+    // The ban list never reaches clients.
+    expect(JSON.stringify(tableView(removed, 'c2', new Set()))).not.toContain('"c3"');
+  });
+
+  it('cannot remove players during a hand', () => {
+    const { table, deps } = started(3);
+    expect(err(send(table, 'c1', { type: 'removePlayer', playerId: 'player-2' }, deps))).toMatch(
+      /between hands/,
+    );
+  });
+
+  it('locks the table to new seats without affecting seated players', () => {
+    const { table, deps } = seated(2);
+    expect(err(send(table, 'c2', { type: 'setLocked', locked: true }, deps))).toMatch(
+      /Only the host/,
+    );
+
+    const locked = ok(send(table, 'c1', { type: 'setLocked', locked: true }, deps));
+    expect(tableView(locked, 'c9', new Set()).locked).toBe(true);
+    expect(err(send(locked, 'c9', { type: 'sit', name: 'Stranger' }, deps))).toMatch(/locked/);
+    expect(ok(send(locked, 'c2', { type: 'sit', name: 'Renamed' }, deps)).seats[1]!.name).toBe(
+      'Renamed',
+    );
+    expect(ok(send(locked, 'c1', { type: 'addBot' }, deps)).seats).toHaveLength(3);
+
+    const unlocked = ok(send(locked, 'c1', { type: 'setLocked', locked: false }, deps));
+    expect(ok(send(unlocked, 'c9', { type: 'sit', name: 'Stranger' }, deps)).seats).toHaveLength(3);
   });
 });

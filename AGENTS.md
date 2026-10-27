@@ -50,6 +50,28 @@ The **pre-push hook** runs `lint`, `format:check`, `typecheck` and `test`; all m
 - **Types:** strict TS with `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes`. Avoid `as` casts. The type-aware linter flags unsafe assertions, so narrow with type guards instead.
 - Formatting is oxfmt (single quotes, trailing commas, 100 columns); don't hand-format.
 
+## Versioning and releases
+
+The version lives in the root `package.json` (`version`) and follows [Semantic Versioning](https://semver.org/). Every pull request that changes behavior must:
+
+1. **Bump the version** for the kind of change, relative to the latest tag:
+   - **major**: breaking changes, such as a protocol change that makes old clients or saved tables stop working. While the version is `0.x`, breaking changes bump the minor version instead.
+   - **minor**: new features or rule options, backwards-compatible.
+   - **patch**: bug fixes, copy and styling tweaks, or dependency updates with no behavior change.
+
+   If several changes land in one PR, use the largest. Docs-only or CI-only PRs don't need a bump.
+
+2. **Update `CHANGELOG.md`**: move the entries for this release from `Unreleased` into a new `## [X.Y.Z] - YYYY-MM-DD` section (Keep a Changelog format).
+3. **After the PR is merged**, tag the merge commit on `main` and push the tag as a follow-up:
+
+   ```sh
+   git switch main && git pull
+   git tag -a vX.Y.Z -m "vX.Y.Z: <one-line summary>"
+   git push origin vX.Y.Z
+   ```
+
+   The tag must match `package.json`'s version. Never tag a commit that isn't on `main`.
+
 ## Gotchas
 
 - **Deployment is split.** The web app is on GitHub Pages at `cards.martykokes.com`, and the game server is the `marriage` Worker on the custom domain `cards-api.martykokes.com`. `.github/workflows/deploy.yml` deploys both on pushes to `main`, server first (with the `CLOUDFLARE_API_TOKEN` secret), then the web app built with `VITE_GAME_HOST=cards-api.martykokes.com`. `pnpm run deploy` deploys the server by hand. Without `VITE_GAME_HOST` (dev), the app connects to its own host and Vite proxies `/parties`.

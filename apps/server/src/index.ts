@@ -72,7 +72,8 @@ export class Table extends Server<Env> {
   private lastSocial = new Map<string, number>();
 
   override async onStart(): Promise<void> {
-    this.table = (await this.ctx.storage.get<TableState>('table')) ?? newTable();
+    // Fill in defaults for fields added since the table was saved.
+    this.table = { ...newTable(), ...(await this.ctx.storage.get<TableState>('table')) };
   }
 
   override async onConnect(connection: Connection, ctx: ConnectionContext): Promise<void> {

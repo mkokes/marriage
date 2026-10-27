@@ -1,6 +1,6 @@
-import { MAX_PLAYERS } from '@marriage/engine';
 import type { ClientMessage, TableView } from '@marriage/protocol';
 import { PlayingCard } from './PlayingCard';
+import { ManageSeats } from './HostControls';
 import { Scores } from './Scores';
 import { SitForm } from './SitForm';
 
@@ -68,11 +68,9 @@ export function Results({ table, send }: Props) {
         </button>
       ) : null}
       {!table.you.playerId && (
-        <SitForm
-          full={table.seats.length >= MAX_PLAYERS}
-          onSit={(n) => send({ type: 'sit', name: n })}
-        />
+        <SitForm table={table} onSit={(n) => send({ type: 'sit', name: n })} />
       )}
+      <ManageSeats table={table} send={send} />
       {table.you.isHost ? (
         <div className="button-row">
           <button type="button" className="button" onClick={() => send({ type: 'endSession' })}>

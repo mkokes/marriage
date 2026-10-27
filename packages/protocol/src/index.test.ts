@@ -19,7 +19,8 @@ describe('isClientMessage', () => {
     { type: 'endSession' },
     { type: 'addBot' },
     { type: 'createTable', name: 'Asha', rules: {} },
-    { type: 'removeBot', playerId: 'abc' },
+    { type: 'removePlayer', playerId: 'abc' },
+    { type: 'setLocked', locked: true },
     { type: 'chat', text: 'namaste' },
     { type: 'react', emoji: '🙏' },
     { type: 'getReplay', handNumber: 2 },
@@ -39,7 +40,8 @@ describe('isClientMessage', () => {
     ['long chat', { type: 'chat', text: 'x'.repeat(MAX_CHAT_LENGTH + 1) }],
     ['unknown reaction', { type: 'react', emoji: '💩' }],
     ['fractional hand number', { type: 'getReplay', handNumber: 1.5 }],
-    ['removeBot without id', { type: 'removeBot' }],
+    ['removePlayer without id', { type: 'removePlayer' }],
+    ['setLocked without a boolean', { type: 'setLocked', locked: 'yes' }],
   ])('rejects %s', (_, message) => {
     expect(isClientMessage(message)).toBe(false);
   });
