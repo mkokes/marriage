@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { isClientMessage, MAX_CHAT_LENGTH, MAX_NAME_LENGTH, TOKEN_PATTERN } from './index';
+import {
+  isClientMessage,
+  MAX_CHAT_LENGTH,
+  MAX_NAME_LENGTH,
+  newTableCode,
+  parseTableCode,
+  TABLE_CODE_PATTERN,
+  TOKEN_PATTERN,
+} from './index';
 
 describe('isClientMessage', () => {
   it.each([
@@ -10,6 +18,7 @@ describe('isClientMessage', () => {
     { type: 'action', action: { type: 'drawStock' } },
     { type: 'endSession' },
     { type: 'addBot' },
+    { type: 'createTable', name: 'Asha', rules: {} },
     { type: 'removeBot', playerId: 'abc' },
     { type: 'chat', text: 'namaste' },
     { type: 'react', emoji: '🙏' },
@@ -41,5 +50,21 @@ describe('TOKEN_PATTERN', () => {
     expect(TOKEN_PATTERN.test('a'.repeat(22))).toBe(true);
     expect(TOKEN_PATTERN.test('short')).toBe(false);
     expect(TOKEN_PATTERN.test(`${'a'.repeat(22)}&name=x`)).toBe(false);
+  });
+});
+
+describe('table codes', () => {
+  it('makes four-consonant codes from random bytes, skipping biased bytes', () => {
+    const bytes = [240, 255, 0, 1, 19, 20, 7, 7];
+    const code = newTableCode((n) => Uint8Array.from(bytes.slice(0, n)));
+    expect(code).toBe('BCZB');
+    expect(TABLE_CODE_PATTERN.test(code)).toBe(true);
+  });
+
+  it('parses what people type', () => {
+    expect(parseTableCode(' bcdf ')).toBe('BCDF');
+    expect(parseTableCode('ABCD')).toBeNull(); // vowels never appear in codes
+    expect(parseTableCode('BCD')).toBeNull();
+    expect(parseTableCode('BCDFG')).toBeNull();
   });
 });

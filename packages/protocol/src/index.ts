@@ -4,6 +4,31 @@ import { isRecord, type HandView, type RulesConfig } from '@marriage/engine';
 export const TABLE_PARTY = 'table';
 
 /**
+ * Table codes are four capital consonants, like a Jackbox room code. Leaving out
+ * vowels keeps random codes from spelling words. 20⁴ = 160,000 possible codes.
+ */
+export const TABLE_CODE_LETTERS = 'BCDFGHJKLMNPQRSTVWXZ';
+export const TABLE_CODE_PATTERN = /^[BCDFGHJKLMNPQRSTVWXZ]{4}$/;
+
+/** A random table code. `randomBytes` should come from a CSPRNG. */
+export function newTableCode(randomBytes: (n: number) => Uint8Array): string {
+  // 256 is not a multiple of 20, so reject bytes ≥ 240 to keep letters equally likely.
+  let code = '';
+  while (code.length < 4) {
+    for (const byte of randomBytes(8)) {
+      if (byte < 240 && code.length < 4) code += TABLE_CODE_LETTERS[byte % 20];
+    }
+  }
+  return code;
+}
+
+/** Normalizes what someone typed into a table code, or null if it can't be one. */
+export function parseTableCode(input: string): string | null {
+  const code = input.trim().toUpperCase();
+  return TABLE_CODE_PATTERN.test(code) ? code : null;
+}
+
+/**
  * The secret a device keeps in localStorage to reclaim its seat. It is sent only when
  * connecting and is never shown to other players.
  */
@@ -19,6 +44,8 @@ export type Reaction = (typeof REACTIONS)[number];
 export const MAX_MESSAGE_BYTES = 16 * 1024;
 
 export type ClientMessage =
+  /** Claim a new (unused) table code: set its rules and sit down as host. */
+  | { type: 'createTable'; name: string; rules: unknown }
   /** Take a seat (lobby or between hands). Re-sending updates your name. */
   | { type: 'sit'; name: string }
   /** Give up your seat (lobby or between hands). */
@@ -74,7 +101,8 @@ export interface ReplayRecord {
   actions: unknown[];
 }
 
-export type TableStatus = 'lobby' | 'playing' | 'handOver' | 'ended';
+/** `new`: nobody has created a table with this code yet. */
+export type TableStatus = 'new' | 'lobby' | 'playing' | 'handOver' | 'ended';
 
 /** Everything one connection may see about a table. */
 export interface TableView {
@@ -116,6 +144,8 @@ const isReaction = (value: unknown): value is Reaction =>
 export function isClientMessage(value: unknown): value is ClientMessage {
   if (!isRecord(value)) return false;
   switch (value.type) {
+    case 'createTable':
+      return isName(value.name) && 'rules' in value;
     case 'sit':
       return isName(value.name);
     case 'setRules':

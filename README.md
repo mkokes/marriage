@@ -4,7 +4,7 @@ Play the Nepali card game Marriage with friends and family in the browser.
 
 A mobile-first, multiplayer web version of [Marriage](<https://en.wikipedia.org/wiki/Marriage_(card_game)>), the rummy-style game played with three decks, a hidden tiplu and maal points. Tables are private and joined by link, with no accounts. Rules vary a lot between households, so every rule and variant is a table setting, and a "Standard" preset covers the most common way to play.
 
-**Status:** playable. Start a table, invite players by link or fill seats with bots, chat and react, and watch replays of finished hands. Deployment is next. See the milestones in [docs/SPEC.md](docs/SPEC.md#milestones).
+**Status:** live at [cards.martykokes.com](https://cards.martykokes.com). Start a table with the rules your family plays, share its four-letter code, fill empty seats with bots, chat and react, and watch replays of finished hands.
 
 ## Features
 

@@ -14,7 +14,8 @@ pnpm workspace, all TypeScript:
   - `table.ts` is the pure table logic (seats and bots, host, rules, hands, scores, chat, turn timer, bot turns and auto-play on timeout, per-connection views). `nextWake` gives the next alarm time (turn timeout or bot move). Time, RNG keys and ids are injected via `TableDeps`, so it's tested in plain Node (`table.test.ts`).
   - `index.ts` is the thin Durable Object: token hashing, message parsing, storage (`table` key, plus `replay:<n>` per finished hand), alarms and broadcasting. It hibernates, so all state must live in storage or connection state.
 - `apps/web` — Vite + React PWA, connects with `partysocket`. In dev, Vite proxies `/parties` to `wrangler dev` on port 8787.
-  - Screens: `Home` (start or join a table), `Lobby` (seats, invite link, `RulesEditor`), `Game` (table, hand, actions), `Results`/`FinalScores`. `App` picks one from `?table=<code>` and the table status; `useTable` owns the socket.
+  - Screens: `Home` (start, or join by code), `NewTable` (name and rules, then create), `Lobby` (seats, code and invite link, `RulesEditor`), `Game` (table, hand, actions), `Results`/`FinalScores`, `NoTable`. `router.ts` maps the query string (`/`, `?new`, `?table=QXRT`) to a screen and navigates with `history.pushState`; `useTable` owns the socket.
+  - Creating a table: `NewTable` stores the choice in `pendingTables` (in memory) and navigates to a fresh code; `App`'s `TableScreen` sends `createTable` once the code reports status `new`, or picks another code if it's taken.
   - `arrangement.ts` (the player's local grouping of their hand), `moves.ts` (which groups can show or finish, using engine rules) and `replaySteps.ts` (rebuilds a finished hand from its replay record) are pure and unit-tested. `Chat`, `ReactionBubble` and `Replay` are the social and replay UI.
   - Styling is one stylesheet, `src/styles.css`, with design tokens on `:root`: night indigo table, crimson and marigold accents, lokta-paper cards, Yatra One and Mukta from Google Fonts, and a CSS dhaka-weave band. Keep new UI on those tokens.
 - `docs/SPEC.md` — product spec, rule decisions and milestones.
@@ -59,6 +60,7 @@ The **pre-push hook** runs `lint`, `format:check`, `typecheck` and `test`; all m
 - Test helpers build RNG keys with `testKey(n)`; never use those outside tests.
 - Hand arrangements live only in the browser (localStorage, keyed by table and hand number) via `src/storage.ts`, whose wrappers never throw. The server only sees groups when a player shows or finishes.
 - macOS file systems are case-insensitive: don't create files whose names differ only by case (e.g. `replay.ts` beside `Replay.tsx`).
+- Table codes are four capital consonants (`TABLE_CODE_LETTERS` in the protocol). A fresh Durable Object starts with status `new` and accepts only `createTable`, which seats its creator as host. The Worker 404s room names that aren't valid codes.
 - Card ids are `<deck>-<suit>-<rank>` (e.g. `0-hearts-7`) or `<deck>-joker-<n>`. Identical faces from different decks are distinct cards; compare faces with `sameFace`/`faceKey`, not ids.
 - Stock and discard pile arrays have their **top at the end**. The tiplu sits at the **bottom** of the stock (index 0).
 - In a set, `classifySet` reports a natural kind (e.g. `trial`) before trying wilds, so a test meant to exercise wilds must use cards that aren't already a natural set.

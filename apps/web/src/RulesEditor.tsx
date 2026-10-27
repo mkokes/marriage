@@ -1,5 +1,5 @@
 import { STANDARD_RULES, validateRules, type MaalValues, type RulesConfig } from '@marriage/engine';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 
 const MAAL_FIELDS: [keyof MaalValues, string][] = [
   ['tiplu', 'Tiplu'],
@@ -15,15 +15,31 @@ const MAAL_FIELDS: [keyof MaalValues, string][] = [
 const whole = (value: string) => Math.max(0, Math.floor(Number(value) || 0));
 
 interface Props {
+  /** The starting values. */
   rules: RulesConfig;
   onSave: (rules: RulesConfig) => void;
+  submitLabel?: string;
+  /** Disable submitting until something differs from `rules`. */
+  requireChange?: boolean;
+  /** Extra checks from the page around the form (e.g. a name is filled in). */
+  canSubmit?: boolean;
+  /** Extra fields shown above the rules, submitted with them. */
+  children?: ReactNode;
 }
 
-/** The host's rules form. Changes apply from the next hand. */
-export function RulesEditor({ rules, onSave }: Props) {
+/** The rules form, used when setting up a table and by the host in the lobby. */
+export function RulesEditor({
+  rules,
+  onSave,
+  submitLabel = 'Save rules',
+  requireChange = true,
+  canSubmit = true,
+  children,
+}: Props) {
   const [draft, setDraft] = useState(rules);
   const problems = validateRules(draft);
   const changed = JSON.stringify(draft) !== JSON.stringify(rules);
+  const ready = canSubmit && problems.length === 0 && (changed || !requireChange);
 
   const set = <K extends keyof RulesConfig>(key: K, value: RulesConfig[K]) =>
     setDraft((d) => ({ ...d, [key]: value }));
@@ -35,9 +51,10 @@ export function RulesEditor({ rules, onSave }: Props) {
       className="rules"
       onSubmit={(e) => {
         e.preventDefault();
-        if (problems.length === 0) onSave(draft);
+        if (ready) onSave(draft);
       }}
     >
+      {children}
       <fieldset>
         <legend>Cards</legend>
         <label className="field">
@@ -226,12 +243,8 @@ export function RulesEditor({ rules, onSave }: Props) {
         >
           Reset to Standard
         </button>
-        <button
-          type="submit"
-          className="button button--primary"
-          disabled={!changed || problems.length > 0}
-        >
-          Save rules
+        <button type="submit" className="button button--primary" disabled={!ready}>
+          {submitLabel}
         </button>
       </div>
     </form>

@@ -2,6 +2,7 @@ import { isRecord } from '@marriage/engine';
 import {
   isClientMessage,
   MAX_MESSAGE_BYTES,
+  TABLE_CODE_PATTERN,
   TOKEN_PATTERN,
   type ReplayRecord,
   type ServerMessage,
@@ -168,8 +169,14 @@ export class Table extends Server<Env> {
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    if (!isAllowedOrigin(request.headers.get('Origin'), env.ALLOWED_ORIGINS)) {
+    const origin = request.headers.get('Origin');
+    if (!isAllowedOrigin(origin, env.ALLOWED_ORIGINS, new URL(request.url).host)) {
       return new Response('Forbidden origin', { status: 403 });
+    }
+    // Only well-formed table codes get a Durable Object.
+    const room = /^\/parties\/[^/]+\/([^/?]+)/.exec(new URL(request.url).pathname)?.[1];
+    if (room !== undefined && !TABLE_CODE_PATTERN.test(room)) {
+      return new Response('Unknown table', { status: 404 });
     }
     return (
       (await routePartykitRequest(request, env)) ??

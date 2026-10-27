@@ -1,8 +1,6 @@
 import { MAX_NAME_LENGTH } from '@marriage/protocol';
 import { useState } from 'react';
-import { local } from './storage';
-
-const NAME_KEY = 'marriage.name';
+import { local, NAME_KEY } from './storage';
 
 /** Asks for a name and takes a seat. Remembers the name on this device. */
 export function SitForm({ onSit, full }: { onSit: (name: string) => void; full: boolean }) {

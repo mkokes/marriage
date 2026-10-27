@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Table setup step: "Start a table" now opens a page with your name and the rules, pre-filled with Standard. "Create table" claims a code and opens the lobby with you as host.
+- A "No table called …" page for codes nobody has created.
+
+### Changed
+
+- Table codes are four capital consonants, like a Jackbox room code (e.g. `SRWX`). Joining accepts lowercase, and the lobby shows the code to read out.
+- Tables must be created before anyone can sit; unclaimed codes accept only `createTable`.
+- The game server only creates Durable Objects for well-formed table codes.
+
+### Fixed
+
+- Local development: game connections through the Vite proxy were rejected by the origin check, because `wrangler dev` rewrites the Origin to the custom domain. Same-origin requests are now allowed.
+
+## [0.1.0] - 2026-10-26
+
+### Added
+
 - Product and rules spec in `docs/SPEC.md`.
 - pnpm monorepo: shared `@marriage/engine` package, a `partyserver` Cloudflare Worker with one Durable Object per table, and a Vite + React PWA client connected over `partysocket`.
 - Rules engine: seeded shuffling, configurable `RulesConfig` with a Standard preset, set validation (pure/dirty sequences, tunnelas, trials, dublees), tiplu roles and wild cards, maal points, the hand state machine (deal, draw, discard, see, finish, stock exhaustion), net settlement with penalties, kidnap and murder, and per-player redacted views.

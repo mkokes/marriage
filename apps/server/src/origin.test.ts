@@ -15,7 +15,10 @@ describe('isAllowedOrigin', () => {
     ['https://cards.martykokes.com.evil.example', false],
     ['http://localhost.evil.example', false],
     ['https://localhost:5173', false],
+    ['http://cards-api.martykokes.com', true], // same origin as the server
+    ['https://cards-api.martykokes.com.evil.example', false],
+    ['not a url', false],
   ])('%s → %s', (origin, expected) => {
-    expect(isAllowedOrigin(origin, ALLOWED)).toBe(expected);
+    expect(isAllowedOrigin(origin, ALLOWED, 'cards-api.martykokes.com')).toBe(expected);
   });
 });
