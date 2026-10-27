@@ -1,11 +1,21 @@
-import { MAX_NAME_LENGTH } from '@marriage/protocol';
+import { MAX_PLAYERS } from '@marriage/engine';
+import { MAX_NAME_LENGTH, type TableView } from '@marriage/protocol';
 import { useState } from 'react';
 import { local, NAME_KEY } from './storage';
 
-/** Asks for a name and takes a seat. Remembers the name on this device. */
-export function SitForm({ onSit, full }: { onSit: (name: string) => void; full: boolean }) {
+/**
+ * Asks for a name and takes a seat, or explains why you can't. Remembers the name on
+ * this device.
+ */
+export function SitForm({ table, onSit }: { table: TableView; onSit: (name: string) => void }) {
   const [name, setName] = useState(() => local.get(NAME_KEY) ?? '');
-  if (full) return <p className="muted">The table is full. You're watching.</p>;
+  if (table.you.removed) return <p className="muted">The host removed you from this table.</p>;
+  if (table.locked) {
+    return <p className="muted">This table is locked. Ask the host to unlock it to sit down.</p>;
+  }
+  if (table.seats.length >= MAX_PLAYERS) {
+    return <p className="muted">The table is full. You're watching.</p>;
+  }
   return (
     <form
       className="sit"

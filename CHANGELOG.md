@@ -7,8 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-26
+
 ### Added
 
+- Host controls: the host can remove another player between hands (they can't sit at that table again) and lock the table so nobody new can take a seat.
 - Table setup step: "Start a table" now opens a page with your name and the rules, pre-filled with Standard. "Create table" claims a code and opens the lobby with you as host.
 - A "No table called …" page for codes nobody has created.
 - Continuous deployment: every push to `main` runs the checks, deploys the game server to Cloudflare, then publishes the web app, in that order.
@@ -18,6 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Table codes are four capital consonants, like a Jackbox room code (e.g. `SRWX`). Joining accepts lowercase, and the lobby shows the code to read out.
 - Tables must be created before anyone can sit; unclaimed codes accept only `createTable`.
 - The game server only creates Durable Objects for well-formed table codes.
+- "Remove" in the lobby now works for any player, not just bots.
+- The version now lives in the root `package.json`, starting at 0.2.0.
 
 ### Fixed
 

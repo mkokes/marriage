@@ -52,8 +52,13 @@ export type ClientMessage =
   | { type: 'leave' }
   /** Host only, between hands: seat a bot. */
   | { type: 'addBot' }
-  /** Host only, between hands: remove a bot. */
-  | { type: 'removeBot'; playerId: string }
+  /**
+   * Host only, between hands: remove a bot or another player. A removed person can't
+   * sit at this table again.
+   */
+  | { type: 'removePlayer'; playerId: string }
+  /** Host only: while locked, nobody new can take a seat. */
+  | { type: 'setLocked'; locked: boolean }
   /** Host only, outside a hand. Checked by the server with `validateRules`. */
   | { type: 'setRules'; rules: unknown }
   /** Host only: deal the next hand. */
@@ -108,7 +113,9 @@ export type TableStatus = 'new' | 'lobby' | 'playing' | 'handOver' | 'ended';
 export interface TableView {
   status: TableStatus;
   /** Your public player id if seated, else null (spectating). */
-  you: { playerId: string | null; isHost: boolean };
+  you: { playerId: string | null; isHost: boolean; removed: boolean };
+  /** Nobody new can take a seat. */
+  locked: boolean;
   hostId: string | null;
   seats: SeatInfo[];
   rules: RulesConfig;
@@ -152,8 +159,10 @@ export function isClientMessage(value: unknown): value is ClientMessage {
       return 'rules' in value;
     case 'action':
       return 'action' in value;
-    case 'removeBot':
+    case 'removePlayer':
       return typeof value.playerId === 'string' && value.playerId.length <= 64;
+    case 'setLocked':
+      return typeof value.locked === 'boolean';
     case 'chat':
       return isChatText(value.text);
     case 'react':

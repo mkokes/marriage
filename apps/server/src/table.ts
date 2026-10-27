@@ -60,6 +60,10 @@ export interface TableState {
   turnDeadline: number | null;
   /** When the bot whose turn it is should play. */
   botDueAt: number | null;
+  /** While locked, nobody new can take a seat. */
+  locked: boolean;
+  /** Credentials of people the host removed; they can't sit here again. Server-only. */
+  banned: string[];
 }
 
 export interface TableDeps {
@@ -96,6 +100,8 @@ export function newTable(): TableState {
     handLog: null,
     turnDeadline: null,
     botDueAt: null,
+    locked: false,
+    banned: [],
   };
 }
 
@@ -143,6 +149,8 @@ export function handleMessage(
         next.names[seat.playerId] = name;
         return { ok: true, table: next };
       }
+      if (next.banned.includes(credential)) return fail('The host removed you from this table');
+      if (next.locked) return fail('This table is locked. Ask the host to unlock it.');
       if (!betweenHands(next)) return fail('You can only sit down between hands');
       if (next.seats.length >= MAX_PLAYERS) return fail('The table is full');
       const playerId = deps.newId();
@@ -164,12 +172,19 @@ export function handleMessage(
       next.names[playerId] = name;
       return { ok: true, table: next };
     }
-    case 'removeBot': {
-      if (!isHost) return fail('Only the host can remove bots');
-      if (!betweenHands(next)) return fail('Bots can only leave between hands');
-      const bot = next.seats.find((s) => s.playerId === message.playerId && s.isBot);
-      if (!bot) return fail('That bot is not at the table');
-      next.seats = next.seats.filter((s) => s !== bot);
+    case 'removePlayer': {
+      if (!isHost) return fail('Only the host can remove players');
+      if (!betweenHands(next)) return fail('Players can only be removed between hands');
+      const target = next.seats.find((s) => s.playerId === message.playerId);
+      if (!target) return fail('That player is not at the table');
+      if (target === seat) return fail("You can't remove yourself; leave your seat instead");
+      next.seats = next.seats.filter((s) => s !== target);
+      if (!target.isBot) next.banned.push(target.credential);
+      return { ok: true, table: next };
+    }
+    case 'setLocked': {
+      if (!isHost) return fail('Only the host can lock the table');
+      next.locked = message.locked;
       return { ok: true, table: next };
     }
     case 'chat': {
@@ -348,7 +363,12 @@ export function tableView(
   const playerId = seat?.playerId ?? null;
   return {
     status: table.status,
-    you: { playerId, isHost: playerId !== null && playerId === table.hostId },
+    you: {
+      playerId,
+      isHost: playerId !== null && playerId === table.hostId,
+      removed: credential !== null && table.banned.includes(credential),
+    },
+    locked: table.locked,
     hostId: table.hostId,
     seats: table.seats.map((s) => ({
       playerId: s.playerId,

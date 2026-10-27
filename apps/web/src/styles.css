@@ -1106,3 +1106,31 @@ button.card {
   color: var(--marigold);
   letter-spacing: 0.15em;
 }
+
+/* Host controls */
+.lock {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 0.75rem;
+}
+
+.manage h3 {
+  margin: 0 0 0.3rem;
+  font-size: 1rem;
+}
+
+.manage ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.manage li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--indigo-line);
+}

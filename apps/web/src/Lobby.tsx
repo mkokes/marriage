@@ -1,6 +1,7 @@
 import { MAX_PLAYERS, MIN_PLAYERS } from '@marriage/engine';
 import type { ClientMessage, TableView } from '@marriage/protocol';
 import { useState } from 'react';
+import { LockToggle } from './HostControls';
 import { ReactionBubble } from './ReactionBubble';
 import { RulesEditor } from './RulesEditor';
 import { ruleChanges } from './rules';
@@ -67,11 +68,12 @@ export function Lobby({ room, table, send, reactions }: Props) {
               {seat.isBot && <span className="tag">Bot</span>}
               {!seat.connected && <span className="muted">away</span>}
               <ReactionBubble reactions={reactions} playerId={seat.playerId} />
-              {seat.isBot && table.you.isHost && (
+              {table.you.isHost && seat.playerId !== table.you.playerId && (
                 <button
                   type="button"
                   className="button button--quiet seat__remove"
-                  onClick={() => send({ type: 'removeBot', playerId: seat.playerId })}
+                  aria-label={`Remove ${seat.name}`}
+                  onClick={() => send({ type: 'removePlayer', playerId: seat.playerId })}
                 >
                   Remove
                 </button>
@@ -84,6 +86,10 @@ export function Lobby({ room, table, send, reactions }: Props) {
             Add a bot
           </button>
         )}
+        <LockToggle table={table} send={send} />
+        {table.locked && !table.you.isHost && table.you.playerId && (
+          <p className="muted">The host has locked this table to new players.</p>
+        )}
         {table.you.playerId ? (
           !table.you.isHost && (
             <button
@@ -95,10 +101,7 @@ export function Lobby({ room, table, send, reactions }: Props) {
             </button>
           )
         ) : (
-          <SitForm
-            full={table.seats.length >= MAX_PLAYERS}
-            onSit={(name) => send({ type: 'sit', name })}
-          />
+          <SitForm table={table} onSit={(name) => send({ type: 'sit', name })} />
         )}
       </section>
 
