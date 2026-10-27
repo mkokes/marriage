@@ -37,7 +37,7 @@ pnpm run preview      # production web build on :4173 (vite preview) against wra
 pnpm run deploy       # wrangler deploy of the game server (needs `wrangler login`); not `pnpm deploy`, a pnpm built-in
 ```
 
-The **pre-push hook** runs `lint`, `format:check`, `typecheck` and `test`; all must pass before pushing.
+The **pre-push hook** runs `lint`, `format:check`, `typecheck`, `test` and `build`; all must pass before pushing.
 
 ## Conventions
 
@@ -83,6 +83,7 @@ The version lives in the root `package.json` (`version`) and follows [Semantic V
 - Hand arrangements live only in the browser (localStorage, keyed by table and hand number) via `src/storage.ts`, whose wrappers never throw. The server only sees groups when a player shows or finishes.
 - macOS file systems are case-insensitive: don't create files whose names differ only by case (e.g. `replay.ts` beside `Replay.tsx`).
 - Table codes are four capital consonants (`TABLE_CODE_LETTERS` in the protocol). A fresh Durable Object starts with status `new` and accepts only `createTable`, which seats its creator as host. The Worker 404s room names that aren't valid codes.
+- The service worker is registered in `apps/web/src/serviceWorker.ts` (`injectRegister: false`), with `skipWaiting`/`clientsClaim` on, so a new release takes over and reloads open pages right away. Keep it that way: a stale cached app talking to a newer game server breaks.
 - Card ids are `<deck>-<suit>-<rank>` (e.g. `0-hearts-7`) or `<deck>-joker-<n>`. Identical faces from different decks are distinct cards; compare faces with `sameFace`/`faceKey`, not ids.
 - Stock and discard pile arrays have their **top at the end**. The tiplu sits at the **bottom** of the stock (index 0).
 - In a set, `classifySet` reports a natural kind (e.g. `trial`) before trying wilds, so a test meant to exercise wilds must use cards that aren't already a natural set.

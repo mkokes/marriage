@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-10-26
+
+### Fixed
+
+- After a release, returning players got the previous version from the offline cache until they reloaded, so an old app could talk to a newer game server. The app now reloads itself as soon as a new version is downloaded, and long-open tabs check for updates hourly.
+
+### Changed
+
+- The Deploy workflow builds the web app before deploying the game server, so a broken build can't leave a new server live behind the old app. The pre-push hook now runs the production build too.
+
 ## [0.2.0] - 2026-10-26
 
 ### Added

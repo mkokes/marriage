@@ -7,6 +7,11 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      // Registered from src/serviceWorker.ts, which reloads the page on updates.
+      injectRegister: false,
+      // A new version takes over as soon as it's installed (instead of waiting for
+      // every tab to close); src/serviceWorker.ts then reloads the page onto it.
+      workbox: { skipWaiting: true, clientsClaim: true },
       manifest: {
         name: 'Marriage',
         short_name: 'Marriage',
