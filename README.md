@@ -70,3 +70,9 @@ To deploy the game server by hand instead, run `pnpm --filter @marriage/server e
 A pre-push hook runs lint, format check, typecheck, tests and the production build. Work happens on branches and lands through pull requests.
 
 Project structure, conventions and gotchas are in [AGENTS.md](AGENTS.md); product scope and the full rules are in [docs/SPEC.md](docs/SPEC.md).
+
+## License
+
+Copyright (C) 2026 Marty Kokes
+
+Licensed under the GNU General Public License v3.0 or later. See [LICENSE](LICENSE).
