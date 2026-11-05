@@ -4,5 +4,6 @@
   "trailingComma": "all",
   "printWidth": 100,
   "sortPackageJson": false,
+  "endOfLine": "lf",
   "ignorePatterns": ["pnpm-lock.yaml", "dist/", "dev-dist/", ".wrangler/"]
 }
